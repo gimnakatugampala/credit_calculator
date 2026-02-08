@@ -1,12 +1,31 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { createClient } from '@supabase/supabase-js';
+
+// Supabase configuration
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+
+// Initialize Supabase client only if credentials are provided
+const supabase = supabaseUrl && supabaseAnonKey 
+  ? createClient(supabaseUrl, supabaseAnonKey)
+  : null;
+
+const STORAGE_KEY = 'ukCreditCalculator';
+const SYNC_QUEUE_KEY = 'ukCreditCalculatorSyncQueue';
 
 export default function CreditCalculator() {
   const [userName, setUserName] = useState('');
   const [userBatch, setUserBatch] = useState('251P');
   const [semesters, setSemesters] = useState([]);
   const [showClearModal, setShowClearModal] = useState(false);
+  const [userId, setUserId] = useState(null);
+  const [isOnline, setIsOnline] = useState(true);
+  const [syncStatus, setSyncStatus] = useState('synced'); // 'synced', 'syncing', 'offline', 'error'
+  
+  const syncQueueRef = useRef([]);
+  const isSyncingRef = useRef(false);
 
   // UK degree classification boundaries
   const getClassification = (percentage) => {
@@ -17,140 +36,356 @@ export default function CreditCalculator() {
     return { name: 'Fail', color: 'text-red-600' };
   };
 
+  // Generate or retrieve user ID for this browser
+  const getUserId = () => {
+    let id = localStorage.getItem('ukCreditCalculatorUserId');
+    if (!id) {
+      id = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      localStorage.setItem('ukCreditCalculatorUserId', id);
+    }
+    return id;
+  };
+
+  // Load sync queue from localStorage
+  const loadSyncQueue = () => {
+    try {
+      const queue = localStorage.getItem(SYNC_QUEUE_KEY);
+      return queue ? JSON.parse(queue) : [];
+    } catch (error) {
+      console.error('Error loading sync queue:', error);
+      return [];
+    }
+  };
+
+  // Save sync queue to localStorage
+  const saveSyncQueue = (queue) => {
+    try {
+      localStorage.setItem(SYNC_QUEUE_KEY, JSON.stringify(queue));
+    } catch (error) {
+      console.error('Error saving sync queue:', error);
+    }
+  };
+
+  // Add operation to sync queue
+  const addToSyncQueue = (operation) => {
+    const queue = [...syncQueueRef.current, { ...operation, timestamp: Date.now() }];
+    syncQueueRef.current = queue;
+    saveSyncQueue(queue);
+  };
+
+  // Process sync queue
+  const processSyncQueue = async () => {
+    if (!supabase || isSyncingRef.current || syncQueueRef.current.length === 0) {
+      return;
+    }
+
+    isSyncingRef.current = true;
+    setSyncStatus('syncing');
+
+    try {
+      const queue = [...syncQueueRef.current];
+      
+      for (const operation of queue) {
+        try {
+          switch (operation.type) {
+            case 'upsert':
+              await supabase
+                .from('calculator_data')
+                .upsert({
+                  user_id: operation.userId,
+                  data: operation.data,
+                  updated_at: new Date().toISOString()
+                }, {
+                  onConflict: 'user_id'
+                });
+              break;
+
+            case 'delete':
+              await supabase
+                .from('calculator_data')
+                .delete()
+                .eq('user_id', operation.userId);
+              break;
+
+            default:
+              console.warn('Unknown operation type:', operation.type);
+          }
+
+          // Remove successfully synced operation from queue
+          syncQueueRef.current = syncQueueRef.current.filter(op => op.timestamp !== operation.timestamp);
+        } catch (error) {
+          console.error('Error processing queue item:', error);
+          // Keep the failed operation in queue for retry
+          break; // Stop processing on first error
+        }
+      }
+
+      saveSyncQueue(syncQueueRef.current);
+      
+      if (syncQueueRef.current.length === 0) {
+        setSyncStatus('synced');
+      } else {
+        setSyncStatus('error');
+      }
+    } catch (error) {
+      console.error('Error processing sync queue:', error);
+      setSyncStatus('error');
+    } finally {
+      isSyncingRef.current = false;
+    }
+  };
+
+  // Save to Supabase (with queue fallback)
+  const saveToSupabase = async (data) => {
+    if (!supabase) return;
+
+    const operation = {
+      type: 'upsert',
+      userId: userId,
+      data: data
+    };
+
+    try {
+      // Try immediate sync
+      await supabase
+        .from('calculator_data')
+        .upsert({
+          user_id: userId,
+          data: data,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'user_id'
+        });
+      
+      setSyncStatus('synced');
+    } catch (error) {
+      console.error('Error saving to Supabase:', error);
+      // Add to queue for later sync
+      addToSyncQueue(operation);
+      setSyncStatus('offline');
+      setIsOnline(false);
+    }
+  };
+
+  // Delete from Supabase (with queue fallback)
+  const deleteFromSupabase = async () => {
+    if (!supabase) return;
+
+    const operation = {
+      type: 'delete',
+      userId: userId
+    };
+
+    try {
+      await supabase
+        .from('calculator_data')
+        .delete()
+        .eq('user_id', userId);
+      
+      setSyncStatus('synced');
+    } catch (error) {
+      console.error('Error deleting from Supabase:', error);
+      // Add to queue for later sync
+      addToSyncQueue(operation);
+      setSyncStatus('offline');
+      setIsOnline(false);
+    }
+  };
+
+  // Save to localStorage (always happens immediately)
+  const saveToLocalStorage = (data) => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    } catch (error) {
+      console.error('Error saving to localStorage:', error);
+    }
+  };
+
   // Load from localStorage on mount
   useEffect(() => {
-    const saved = localStorage.getItem('ukCreditCalculator');
-    if (saved) {
-      try {
+    const id = getUserId();
+    setUserId(id);
+
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
         const data = JSON.parse(saved);
         setUserName(data.userName || '');
         setUserBatch(data.userBatch || '251P');
-        setSemesters(data.semesters || [
-          { id: Date.now(), name: 'Year 3 Semester 1', modules: [] }
-        ]);
-      } catch (e) {
-        console.error('Failed to load saved data:', e);
-        // Initialize with default semester if load fails
-        setSemesters([
-          { id: Date.now(), name: 'Year 3 Semester 1', modules: [] }
-        ]);
+        setSemesters(data.semesters || []);
+      } else {
+        // Initialize with default semester
+        setSemesters([{
+          id: Date.now(),
+          name: 'Year 3 Semester 1',
+          modules: []
+        }]);
       }
-    } else {
-      // Initialize with Year 3 Semester 1 only
-      setSemesters([
-        { id: Date.now(), name: 'Year 3 Semester 1', modules: [] }
-      ]);
+    } catch (error) {
+      console.error('Error loading from localStorage:', error);
+      // Initialize with default semester on error
+      setSemesters([{
+        id: Date.now(),
+        name: 'Year 3 Semester 1',
+        modules: []
+      }]);
+    }
+
+    // Load sync queue
+    syncQueueRef.current = loadSyncQueue();
+
+    // Process any pending sync operations
+    if (supabase) {
+      processSyncQueue();
     }
   }, []);
 
-  // Save to localStorage whenever data changes
+  // Monitor online status
   useEffect(() => {
-    if (semesters.length > 0 || userName || userBatch) {
-      const dataToSave = {
-        userName,
-        userBatch,
-        semesters
-      };
-      localStorage.setItem('ukCreditCalculator', JSON.stringify(dataToSave));
-    }
-  }, [semesters, userName, userBatch]);
-
-  function createNewModule() {
-    return {
-      id: Date.now() + Math.random(),
-      title: '',
-      credits: 20,
-      mark: ''
+    const handleOnline = () => {
+      setIsOnline(true);
+      if (supabase && syncQueueRef.current.length > 0) {
+        processSyncQueue();
+      }
     };
-  }
 
-  function addSemester() {
-    const semesterNames = [
-      'Year 3 Semester 1',
-      'Year 3 Semester 2', 
-      'Year 4 Semester 1',
-      'Year 4 Semester 2'
-    ];
-    
-    const nextIndex = semesters.length;
-    const nextName = nextIndex < semesterNames.length 
-      ? semesterNames[nextIndex]
-      : `Semester ${nextIndex + 1}`;
-    
-    setSemesters([...semesters, {
+    const handleOffline = () => {
+      setIsOnline(false);
+      setSyncStatus('offline');
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  // Auto-save when data changes
+  useEffect(() => {
+    if (semesters.length > 0) {
+      const data = { userName, userBatch, semesters };
+      
+      // Always save to localStorage immediately
+      saveToLocalStorage(data);
+      
+      // Try to save to Supabase
+      if (userId) {
+        saveToSupabase(data);
+      }
+    }
+  }, [userName, userBatch, semesters, userId]);
+
+  // Periodic sync attempt (every 30 seconds)
+  useEffect(() => {
+    if (!supabase) return;
+
+    const interval = setInterval(() => {
+      if (syncQueueRef.current.length > 0 && isOnline) {
+        processSyncQueue();
+      }
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [isOnline]);
+
+  const addSemester = () => {
+    const newSemester = {
       id: Date.now(),
-      name: nextName,
+      name: `Year ${Math.ceil((semesters.length + 1) / 2)} Semester ${(semesters.length % 2) + 1}`,
       modules: []
-    }]);
-  }
+    };
+    setSemesters([...semesters, newSemester]);
+  };
 
-  function addModule(semesterId) {
-    setSemesters(semesters.map(sem => 
-      sem.id === semesterId 
-        ? { ...sem, modules: [...sem.modules, createNewModule()] }
-        : sem
-    ));
-  }
-
-  function updateModule(semesterId, moduleId, field, value) {
-    setSemesters(semesters.map(sem =>
-      sem.id === semesterId
-        ? {
-            ...sem,
-            modules: sem.modules.map(mod =>
-              mod.id === moduleId ? { ...mod, [field]: value } : mod
-            )
-          }
-        : sem
-    ));
-  }
-
-  function deleteModule(semesterId, moduleId) {
-    setSemesters(semesters.map(sem =>
-      sem.id === semesterId
-        ? { ...sem, modules: sem.modules.filter(mod => mod.id !== moduleId) }
-        : sem
-    ));
-  }
-
-  function deleteSemester(semesterId) {
+  const deleteSemester = (semesterId) => {
     setSemesters(semesters.filter(sem => sem.id !== semesterId));
-  }
+  };
 
-  function updateSemesterName(semesterId, name) {
+  const updateSemesterName = (semesterId, newName) => {
     setSemesters(semesters.map(sem =>
-      sem.id === semesterId ? { ...sem, name } : sem
+      sem.id === semesterId ? { ...sem, name: newName } : sem
     ));
-  }
+  };
 
-  function clearAllData() {
+  const addModule = (semesterId) => {
+    setSemesters(semesters.map(sem => {
+      if (sem.id === semesterId) {
+        return {
+          ...sem,
+          modules: [...sem.modules, { id: Date.now(), title: '', credits: '', mark: '' }]
+        };
+      }
+      return sem;
+    }));
+  };
+
+  const deleteModule = (semesterId, moduleId) => {
+    setSemesters(semesters.map(sem => {
+      if (sem.id === semesterId) {
+        return {
+          ...sem,
+          modules: sem.modules.filter(mod => mod.id !== moduleId)
+        };
+      }
+      return sem;
+    }));
+  };
+
+  const updateModule = (semesterId, moduleId, field, value) => {
+    setSemesters(semesters.map(sem => {
+      if (sem.id === semesterId) {
+        return {
+          ...sem,
+          modules: sem.modules.map(mod =>
+            mod.id === moduleId ? { ...mod, [field]: value } : mod
+          )
+        };
+      }
+      return sem;
+    }));
+  };
+
+  const clearAllData = () => {
     setUserName('');
     setUserBatch('251P');
-    setSemesters([
-      { id: Date.now(), name: 'Year 3 Semester 1', modules: [] }
-    ]);
-    localStorage.removeItem('ukCreditCalculator');
+    setSemesters([{
+      id: Date.now(),
+      name: 'Year 3 Semester 1',
+      modules: []
+    }]);
+    
+    // Clear localStorage
+    localStorage.removeItem(STORAGE_KEY);
+    
+    // Delete from Supabase
+    if (userId) {
+      deleteFromSupabase();
+    }
+    
     setShowClearModal(false);
-  }
+  };
 
-  // Calculate weighted average
-  function calculateWeightedAverage() {
+  const calculateWeightedAverage = () => {
     let totalCredits = 0;
     let weightedSum = 0;
 
-    semesters.forEach(sem => {
-      sem.modules.forEach(mod => {
-        if (mod.mark !== '' && !isNaN(mod.mark)) {
-          const mark = parseFloat(mod.mark);
-          const credits = parseInt(mod.credits) || 0;
-          weightedSum += mark * credits;
+    semesters.forEach(semester => {
+      semester.modules.forEach(module => {
+        const credits = parseInt(module.credits) || 0;
+        const mark = parseFloat(module.mark);
+        
+        if (!isNaN(mark) && mark !== '' && credits > 0) {
           totalCredits += credits;
+          weightedSum += mark * credits;
         }
       });
     });
 
     return totalCredits > 0 ? weightedSum / totalCredits : 0;
-  }
+  };
 
   const weightedAverage = calculateWeightedAverage();
   const classification = getClassification(weightedAverage);
@@ -163,6 +398,31 @@ export default function CreditCalculator() {
       <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGQ9Ik0zNiAxOGMzLjMxIDAgNiAyLjY5IDYgNnMtMi42OSA2LTYgNi02LTIuNjktNi02IDIuNjktNiA2LTZ6TTI0IDQyYzMuMzEgMCA2IDIuNjkgNiA2cy0yLjY5IDYtNiA2LTYtMi42OS02LTYgMi42OS02IDYtNnoiIHN0cm9rZT0iIzk0YTNiOCIgc3Ryb2tlLXdpZHRoPSIuNSIgb3BhY2l0eT0iLjEiLz48L2c+PC9zdmc+')] opacity-40"></div>
       
       <div className="relative max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-6 sm:py-8 md:py-12">
+        {/* Sync Status Indicator */}
+        {supabase && (
+          <div className="fixed top-4 right-4 z-50">
+            <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium shadow-lg ${
+              syncStatus === 'synced' ? 'bg-green-100 text-green-700' :
+              syncStatus === 'syncing' ? 'bg-blue-100 text-blue-700' :
+              syncStatus === 'offline' ? 'bg-yellow-100 text-yellow-700' :
+              'bg-red-100 text-red-700'
+            }`}>
+              <div className={`w-2 h-2 rounded-full ${
+                syncStatus === 'synced' ? 'bg-green-500' :
+                syncStatus === 'syncing' ? 'bg-blue-500 animate-pulse' :
+                syncStatus === 'offline' ? 'bg-yellow-500' :
+                'bg-red-500'
+              }`}></div>
+              <span>
+                {syncStatus === 'synced' ? 'Synced' :
+                 syncStatus === 'syncing' ? 'Syncing...' :
+                 syncStatus === 'offline' ? 'Offline Mode' :
+                 'Sync Error'}
+              </span>
+            </div>
+          </div>
+        )}
+
         {/* Header */}
         <div className="mb-6 md:mb-8 text-center">
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold bg-gradient-to-r from-slate-800 via-blue-900 to-indigo-900 bg-clip-text text-transparent mb-2" 
@@ -230,6 +490,10 @@ export default function CreditCalculator() {
                   </button>
                 </div>
 
+                {semester.modules.length === 0 ? (
+                  <p className="text-slate-400 text-sm italic py-4 text-center">No modules added yet</p>
+                ) : (
+                  <>
                   {/* Module Table - Desktop */}
                   <div className="hidden sm:block overflow-x-auto">
                     <table className="w-full">
@@ -339,6 +603,8 @@ export default function CreditCalculator() {
                       </div>
                     ))}
                   </div>
+                  </>
+                )}
 
                   <button
                     onClick={() => addModule(semester.id)}
@@ -524,7 +790,7 @@ export default function CreditCalculator() {
             </div>
             
             <p className="text-sm md:text-base text-slate-600 mb-5 md:mb-6">
-              This will permanently delete all your modules, marks, and student information. This action cannot be undone.
+              This will permanently delete all your modules, marks, and student information from both local storage and cloud backup. This action cannot be undone.
             </p>
             
             <div className="flex flex-col-reverse sm:flex-row gap-2 md:gap-3">
