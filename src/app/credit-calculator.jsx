@@ -4,6 +4,9 @@ import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@supabase/supabase-js';
 
 // Supabase configuration
+// src/app/credit-calculator.jsx
+
+// Change these lines:
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
@@ -214,20 +217,20 @@ export default function CreditCalculator() {
         setUserBatch(data.userBatch || '251P');
         setSemesters(data.semesters || []);
       } else {
-        // Initialize with default semester and one empty module
+        // Initialize with default semester
         setSemesters([{
           id: Date.now(),
           name: 'Year 3 Semester 1',
-          modules: [{ id: Date.now(), title: '', credits: '', mark: '' }]
+          modules: []
         }]);
       }
     } catch (error) {
       console.error('Error loading from localStorage:', error);
-      // Initialize with default semester and one empty module on error
+      // Initialize with default semester on error
       setSemesters([{
         id: Date.now(),
         name: 'Year 3 Semester 1',
-        modules: [{ id: Date.now(), title: '', credits: '', mark: '' }]
+        modules: []
       }]);
     }
 
@@ -295,7 +298,7 @@ export default function CreditCalculator() {
     const newSemester = {
       id: Date.now(),
       name: `Year ${Math.ceil((semesters.length + 1) / 2)} Semester ${(semesters.length % 2) + 1}`,
-      modules: [{ id: Date.now(), title: '', credits: '', mark: '' }]
+      modules: []
     };
     setSemesters([...semesters, newSemester]);
   };
@@ -354,7 +357,7 @@ export default function CreditCalculator() {
     setSemesters([{
       id: Date.now(),
       name: 'Year 3 Semester 1',
-      modules: [{ id: Date.now(), title: '', credits: '', mark: '' }]
+      modules: []
     }]);
     
     // Clear localStorage
@@ -398,6 +401,31 @@ export default function CreditCalculator() {
       <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGQ9Ik0zNiAxOGMzLjMxIDAgNiAyLjY5IDYgNnMtMi42OSA2LTYgNi02LTIuNjktNi02IDIuNjktNiA2LTZ6TTI0IDQyYzMuMzEgMCA2IDIuNjkgNiA2cy0yLjY5IDYtNiA2LTYtMi42OS02LTYgMi42OS02IDYtNnoiIHN0cm9rZT0iIzk0YTNiOCIgc3Ryb2tlLXdpZHRoPSIuNSIgb3BhY2l0eT0iLjEiLz48L2c+PC9zdmc+')] opacity-40"></div>
       
       <div className="relative max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-6 sm:py-8 md:py-12">
+        {/* Sync Status Indicator */}
+        {/* {supabase && (
+          <div className="fixed top-4 right-4 z-50">
+            <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium shadow-lg ${
+              syncStatus === 'synced' ? 'bg-green-100 text-green-700' :
+              syncStatus === 'syncing' ? 'bg-blue-100 text-blue-700' :
+              syncStatus === 'offline' ? 'bg-yellow-100 text-yellow-700' :
+              'bg-red-100 text-red-700'
+            }`}>
+              <div className={`w-2 h-2 rounded-full ${
+                syncStatus === 'synced' ? 'bg-green-500' :
+                syncStatus === 'syncing' ? 'bg-blue-500 animate-pulse' :
+                syncStatus === 'offline' ? 'bg-yellow-500' :
+                'bg-red-500'
+              }`}></div>
+              <span>
+                {syncStatus === 'synced' ? 'Synced' :
+                 syncStatus === 'syncing' ? 'Syncing...' :
+                 syncStatus === 'offline' ? 'Offline Mode' :
+                 'Sync Error'}
+              </span>
+            </div>
+          </div>
+        )} */}
+
         {/* Header */}
         <div className="mb-6 md:mb-8 text-center">
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold bg-gradient-to-r from-slate-800 via-blue-900 to-indigo-900 bg-clip-text text-transparent mb-2" 
@@ -465,21 +493,75 @@ export default function CreditCalculator() {
                   </button>
                 </div>
 
-                {/* Module Table - Desktop */}
-                <div className="hidden sm:block overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b border-slate-200">
-                        <th className="text-left py-2 px-3 text-xs font-semibold text-slate-600">Title</th>
-                        <th className="text-left py-2 px-3 text-xs font-semibold text-slate-600">Credits</th>
-                        <th className="text-left py-2 px-3 text-xs font-semibold text-slate-600">Mark (%)</th>
-                        <th className="w-12"></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {semester.modules.map((module) => (
-                        <tr key={module.id} className="border-b border-slate-100 hover:bg-blue-50/30 transition-colors">
-                          <td className="py-2 px-3">
+                {semester.modules.length === 0 ? (
+                  <p className="text-slate-400 text-sm italic py-4 text-center">No modules added yet</p>
+                ) : (
+                  <>
+                  {/* Module Table - Desktop */}
+                  <div className="hidden sm:block overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b border-slate-200">
+                          <th className="text-left py-2 px-3 text-xs font-semibold text-slate-600">Title</th>
+                          <th className="text-left py-2 px-3 text-xs font-semibold text-slate-600">Credits</th>
+                          <th className="text-left py-2 px-3 text-xs font-semibold text-slate-600">Mark (%)</th>
+                          <th className="w-12"></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {semester.modules.map((module) => (
+                          <tr key={module.id} className="border-b border-slate-100 hover:bg-blue-50/30 transition-colors">
+                            <td className="py-2 px-3">
+                              <input
+                                type="text"
+                                value={module.title}
+                                onChange={(e) => updateModule(semester.id, module.id, 'title', e.target.value)}
+                                placeholder="Module Title"
+                                className="w-full px-2 py-1.5 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500"
+                              />
+                            </td>
+                            <td className="py-2 px-3">
+                              <input
+                                type="number"
+                                value={module.credits}
+                                onChange={(e) => updateModule(semester.id, module.id, 'credits', e.target.value)}
+                                className="w-20 px-2 py-1.5 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500"
+                              />
+                            </td>
+                            <td className="py-2 px-3">
+                              <input
+                                type="number"
+                                value={module.mark}
+                                onChange={(e) => updateModule(semester.id, module.id, 'mark', e.target.value)}
+                                placeholder="0-100"
+                                min="0"
+                                max="100"
+                                className="w-20 px-2 py-1.5 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500"
+                              />
+                            </td>
+                            <td className="py-2 px-3">
+                              <button
+                                onClick={() => deleteModule(semester.id, module.id)}
+                                className="text-red-400 hover:text-red-600 hover:bg-red-50 p-1.5 rounded-lg transition-colors"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Module Cards - Mobile */}
+                  <div className="sm:hidden space-y-3">
+                    {semester.modules.map((module) => (
+                      <div key={module.id} className="bg-slate-50 rounded-lg p-3 border border-slate-200">
+                        <div className="space-y-2">
+                          <div>
+                            <label className="block text-xs font-semibold text-slate-600 mb-1">Title</label>
                             <input
                               type="text"
                               value={module.title}
@@ -487,277 +569,229 @@ export default function CreditCalculator() {
                               placeholder="Module Title"
                               className="w-full px-2 py-1.5 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500"
                             />
-                          </td>
-                          <td className="py-2 px-3">
-                            <input
-                              type="number"
-                              value={module.credits}
-                              onChange={(e) => updateModule(semester.id, module.id, 'credits', e.target.value)}
-                              className="w-20 px-2 py-1.5 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500"
-                            />
-                          </td>
-                          <td className="py-2 px-3">
-                            <input
-                              type="number"
-                              value={module.mark}
-                              onChange={(e) => updateModule(semester.id, module.id, 'mark', e.target.value)}
-                              placeholder="0-100"
-                              min="0"
-                              max="100"
-                              className="w-20 px-2 py-1.5 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500"
-                            />
-                          </td>
-                          <td className="py-2 px-3">
-                            <button
-                              onClick={() => deleteModule(semester.id, module.id)}
-                              className="text-red-400 hover:text-red-600 hover:bg-red-50 p-1.5 rounded-lg transition-colors"
-                            >
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                              </svg>
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Module Cards - Mobile */}
-                <div className="sm:hidden space-y-3">
-                  {semester.modules.map((module) => (
-                    <div key={module.id} className="bg-slate-50 rounded-lg p-3 border border-slate-200">
-                      <div className="space-y-2">
-                        <div>
-                          <label className="block text-xs font-semibold text-slate-600 mb-1">Title</label>
-                          <input
-                            type="text"
-                            value={module.title}
-                            onChange={(e) => updateModule(semester.id, module.id, 'title', e.target.value)}
-                            placeholder="Module Title"
-                            className="w-full px-2 py-1.5 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500"
-                          />
-                        </div>
-                        <div className="grid grid-cols-2 gap-2">
-                          <div>
-                            <label className="block text-xs font-semibold text-slate-600 mb-1">Credits</label>
-                            <input
-                              type="number"
-                              value={module.credits}
-                              onChange={(e) => updateModule(semester.id, module.id, 'credits', e.target.value)}
-                              className="w-full px-2 py-1.5 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500"
-                            />
                           </div>
-                          <div>
-                            <label className="block text-xs font-semibold text-slate-600 mb-1">Mark (%)</label>
-                            <input
-                              type="number"
-                              value={module.mark}
-                              onChange={(e) => updateModule(semester.id, module.id, 'mark', e.target.value)}
-                              placeholder="0-100"
-                              min="0"
-                              max="100"
-                              className="w-full px-2 py-1.5 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500"
-                            />
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <label className="block text-xs font-semibold text-slate-600 mb-1">Credits</label>
+                              <input
+                                type="number"
+                                value={module.credits}
+                                onChange={(e) => updateModule(semester.id, module.id, 'credits', e.target.value)}
+                                className="w-full px-2 py-1.5 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-semibold text-slate-600 mb-1">Mark (%)</label>
+                              <input
+                                type="number"
+                                value={module.mark}
+                                onChange={(e) => updateModule(semester.id, module.id, 'mark', e.target.value)}
+                                placeholder="0-100"
+                                min="0"
+                                max="100"
+                                className="w-full px-2 py-1.5 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500"
+                              />
+                            </div>
                           </div>
+                          <button
+                            onClick={() => deleteModule(semester.id, module.id)}
+                            className="w-full text-red-500 hover:text-red-700 hover:bg-red-50 py-2 rounded-lg transition-colors text-sm font-medium flex items-center justify-center gap-2"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                            Delete Module
+                          </button>
                         </div>
-                        <button
-                          onClick={() => deleteModule(semester.id, module.id)}
-                          className="w-full text-red-500 hover:text-red-700 hover:bg-red-50 py-2 rounded-lg transition-colors text-sm font-medium flex items-center justify-center gap-2"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                          Delete Module
-                        </button>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                  </>
+                )}
 
+                  <button
+                    onClick={() => addModule(semester.id)}
+                    className="mt-3 w-full sm:w-auto px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg md:rounded-xl text-sm font-medium transition-all duration-200 hover:shadow-md flex items-center justify-center gap-2"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                    Add Module
+                  </button>
+                </div>
+              ))}
+
+              {/* Action Buttons */}
+              <div className="flex flex-col sm:flex-row gap-3">
                 <button
-                  onClick={() => addModule(semester.id)}
-                  className="mt-3 w-full sm:w-auto px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg md:rounded-xl text-sm font-medium transition-all duration-200 hover:shadow-md flex items-center justify-center gap-2"
+                  onClick={addSemester}
+                  className="px-4 md:px-6 py-2.5 md:py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl text-sm font-semibold shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center gap-2"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                   </svg>
-                  Add Module
+                  Add Semester
+                </button>
+                <button
+                  onClick={() => setShowClearModal(true)}
+                  className="px-4 md:px-6 py-2.5 md:py-3 bg-white hover:bg-red-50 text-red-600 border-2 border-red-200 rounded-xl text-sm font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
+                >
+                  Clear All
                 </button>
               </div>
-            ))}
-
-            {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row gap-3">
-              <button
-                onClick={addSemester}
-                className="px-4 md:px-6 py-2.5 md:py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl text-sm font-semibold shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center gap-2"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-                Add Semester
-              </button>
-              <button
-                onClick={() => setShowClearModal(true)}
-                className="px-4 md:px-6 py-2.5 md:py-3 bg-white hover:bg-red-50 text-red-600 border-2 border-red-200 rounded-xl text-sm font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
-              >
-                Clear All
-              </button>
             </div>
-          </div>
 
-          {/* Summary Sidebar */}
-          <div className="lg:col-span-1 space-y-4 md:space-y-6">
-            {/* Main Score Card */}
-            <div className="bg-white/80 backdrop-blur-sm rounded-xl md:rounded-2xl shadow-lg p-4 md:p-6 border border-slate-200/50 lg:sticky lg:top-6">
-              {/* Student Info Display */}
-              {(userName || userBatch !== '251P') && (
-                <div className="mb-4 md:mb-6 pb-4 md:pb-6 border-b border-slate-200">
-                  {userName && (
-                    <div className="text-center mb-2">
-                      <div className="text-base md:text-lg font-bold text-slate-800" style={{ fontFamily: 'Georgia, serif' }}>
-                        {userName}
+            {/* Summary Sidebar */}
+            <div className="lg:col-span-1 space-y-4 md:space-y-6">
+              {/* Main Score Card */}
+              <div className="bg-white/80 backdrop-blur-sm rounded-xl md:rounded-2xl shadow-lg p-4 md:p-6 border border-slate-200/50 lg:sticky lg:top-6">
+                {/* Student Info Display */}
+                {(userName || userBatch !== '251P') && (
+                  <div className="mb-4 md:mb-6 pb-4 md:pb-6 border-b border-slate-200">
+                    {userName && (
+                      <div className="text-center mb-2">
+                        <div className="text-base md:text-lg font-bold text-slate-800" style={{ fontFamily: 'Georgia, serif' }}>
+                          {userName}
+                        </div>
                       </div>
-                    </div>
-                  )}
-                  <div className="text-center">
-                    <span className="inline-block px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs md:text-sm font-semibold">
-                      Batch {userBatch}
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              <div className="text-center mb-4 md:mb-6">
-                <div className="inline-block relative">
-                  {/* Circular Progress Bar */}
-                  <svg className="w-40 h-40 md:w-48 md:h-48 transform -rotate-90" viewBox="0 0 160 160">
-                    {/* Background circle */}
-                    <circle
-                      cx="80"
-                      cy="80"
-                      r="70"
-                      fill="none"
-                      stroke="#e5e7eb"
-                      strokeWidth="12"
-                    />
-                    {/* Progress circle */}
-                    <circle
-                      cx="80"
-                      cy="80"
-                      r="70"
-                      fill="none"
-                      stroke={
-                        weightedAverage >= 70 ? '#16a34a' :
-                        weightedAverage >= 60 ? '#2563eb' :
-                        weightedAverage >= 50 ? '#ca8a04' :
-                        weightedAverage >= 40 ? '#6b7280' :
-                        '#dc2626'
-                      }
-                      strokeWidth="12"
-                      strokeLinecap="round"
-                      strokeDasharray={`${(weightedAverage / 100) * 440} 440`}
-                      className="transition-all duration-1000 ease-out"
-                    />
-                  </svg>
-                  {/* Text overlay */}
-                  <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <div className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-1" style={{ fontFamily: 'Georgia, serif' }}>
-                      {weightedAverage.toFixed(2)}%
-                    </div>
-                    <div className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">
-                      Weighted Average
-                    </div>
-                    <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full ${
-                      classification.color === 'text-green-600' ? 'bg-green-50 border border-green-200' :
-                      classification.color === 'text-blue-600' ? 'bg-blue-50 border border-blue-200' :
-                      classification.color === 'text-yellow-600' ? 'bg-yellow-50 border border-yellow-200' :
-                      classification.color === 'text-gray-600' ? 'bg-gray-50 border border-gray-200' :
-                      'bg-red-50 border border-red-200'
-                    }`}>
-                      <div className={`w-2 h-2 rounded-full ${
-                        classification.color === 'text-green-600' ? 'bg-green-500 animate-pulse' :
-                        classification.color === 'text-blue-600' ? 'bg-blue-500 animate-pulse' :
-                        classification.color === 'text-yellow-600' ? 'bg-yellow-500 animate-pulse' :
-                        classification.color === 'text-gray-600' ? 'bg-gray-500 animate-pulse' :
-                        'bg-red-500 animate-pulse'
-                      }`}></div>
-                      <span className={`text-xs md:text-sm font-bold ${classification.color}`}>
-                        {classification.name}
+                    )}
+                    <div className="text-center">
+                      <span className="inline-block px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs md:text-sm font-semibold">
+                        Batch {userBatch}
                       </span>
                     </div>
                   </div>
-                </div>
-                <div className="text-slate-500 text-xs mt-4">
-                  {totalCredits} total credits
-                </div>
-              </div>
+                )}
 
-              {/* Semester Averages */}
-              {semesters.some(sem => sem.modules.some(m => m.mark !== '' && !isNaN(m.mark))) && (
-                <div className="space-y-2 md:space-y-3 mb-4 md:mb-6">
-                  <h3 className="text-xs md:text-sm font-bold text-slate-700 mb-2 md:mb-3">Semester Averages</h3>
-                  {semesters.map(semester => {
-                    const semesterCredits = semester.modules.reduce((sum, m) => sum + (parseInt(m.credits) || 0), 0);
-                    const semesterWeightedSum = semester.modules.reduce((sum, m) => {
-                      if (m.mark !== '' && !isNaN(m.mark)) {
-                        return sum + (parseFloat(m.mark) * (parseInt(m.credits) || 0));
-                      }
-                      return sum;
-                    }, 0);
-                    const semesterAverage = semesterCredits > 0 ? semesterWeightedSum / semesterCredits : 0;
+                <div className="text-center mb-4 md:mb-6">
+                  <div className="inline-block relative">
+                    {/* Circular Progress Bar */}
+                    <svg className="w-40 h-40 md:w-48 md:h-48 transform -rotate-90" viewBox="0 0 160 160">
+                      {/* Background circle */}
+                      <circle
+                        cx="80"
+                        cy="80"
+                        r="70"
+                        fill="none"
+                        stroke="#e5e7eb"
+                        strokeWidth="12"
+                      />
+                      {/* Progress circle */}
+                      <circle
+                        cx="80"
+                        cy="80"
+                        r="70"
+                        fill="none"
+                        stroke={
+                          weightedAverage >= 70 ? '#16a34a' :
+                          weightedAverage >= 60 ? '#2563eb' :
+                          weightedAverage >= 50 ? '#ca8a04' :
+                          weightedAverage >= 40 ? '#6b7280' :
+                          '#dc2626'
+                        }
+                        strokeWidth="12"
+                        strokeLinecap="round"
+                        strokeDasharray={`${(weightedAverage / 100) * 440} 440`}
+                        className="transition-all duration-1000 ease-out"
+                      />
+                    </svg>
+                    {/* Text overlay */}
+                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                      <div className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-1" style={{ fontFamily: 'Georgia, serif' }}>
+                        {weightedAverage.toFixed(2)}%
+                      </div>
+                     <div className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">
+  Weighted Average
+</div>
+<div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full ${
+  classification.color === 'text-green-600' ? 'bg-green-50 border border-green-200' :
+  classification.color === 'text-blue-600' ? 'bg-blue-50 border border-blue-200' :
+  classification.color === 'text-yellow-600' ? 'bg-yellow-50 border border-yellow-200' :
+  classification.color === 'text-gray-600' ? 'bg-gray-50 border border-gray-200' :
+  'bg-red-50 border border-red-200'
+}`}>
+  <div className={`w-2 h-2 rounded-full ${
+    classification.color === 'text-green-600' ? 'bg-green-500 animate-pulse' :
+    classification.color === 'text-blue-600' ? 'bg-blue-500 animate-pulse' :
+    classification.color === 'text-yellow-600' ? 'bg-yellow-500 animate-pulse' :
+    classification.color === 'text-gray-600' ? 'bg-gray-500 animate-pulse' :
+    'bg-red-500 animate-pulse'
+  }`}></div>
+  <span className={`text-xs md:text-sm font-bold ${classification.color}`}>
+    {classification.name}
+  </span>
+</div>
+                    </div>
+                  </div>
+                  <div className="text-slate-500 text-xs mt-4">
+                    {totalCredits} total credits
+                  </div>
+                </div>
 
-                    if (semester.modules.some(m => m.mark !== '' && !isNaN(m.mark))) {
-                      return (
-                        <div key={semester.id} className="bg-gradient-to-r from-slate-50 to-blue-50 rounded-lg md:rounded-xl p-2.5 md:p-3 border border-slate-200">
-                          <div className="flex justify-between items-center mb-1">
-                            <h4 className="text-xs md:text-sm font-semibold text-slate-700">{semester.name}</h4>
-                            <span className="text-base md:text-lg font-bold text-blue-600">{semesterAverage.toFixed(1)}%</span>
+                {/* Semester Averages */}
+                {semesters.some(sem => sem.modules.some(m => m.mark !== '' && !isNaN(m.mark))) && (
+                  <div className="space-y-2 md:space-y-3 mb-4 md:mb-6">
+                    <h3 className="text-xs md:text-sm font-bold text-slate-700 mb-2 md:mb-3">Semester Averages</h3>
+                    {semesters.map(semester => {
+                      const semesterCredits = semester.modules.reduce((sum, m) => sum + (parseInt(m.credits) || 0), 0);
+                      const semesterWeightedSum = semester.modules.reduce((sum, m) => {
+                        if (m.mark !== '' && !isNaN(m.mark)) {
+                          return sum + (parseFloat(m.mark) * (parseInt(m.credits) || 0));
+                        }
+                        return sum;
+                      }, 0);
+                      const semesterAverage = semesterCredits > 0 ? semesterWeightedSum / semesterCredits : 0;
+
+                      if (semester.modules.some(m => m.mark !== '' && !isNaN(m.mark))) {
+                        return (
+                          <div key={semester.id} className="bg-gradient-to-r from-slate-50 to-blue-50 rounded-lg md:rounded-xl p-2.5 md:p-3 border border-slate-200">
+                            <div className="flex justify-between items-center mb-1">
+                              <h4 className="text-xs md:text-sm font-semibold text-slate-700">{semester.name}</h4>
+                              <span className="text-base md:text-lg font-bold text-blue-600">{semesterAverage.toFixed(1)}%</span>
+                            </div>
+                            <div className="text-xs text-slate-500">{semesterCredits} credits</div>
                           </div>
-                          <div className="text-xs text-slate-500">{semesterCredits} credits</div>
-                        </div>
-                      );
-                    }
-                    return null;
-                  })}
-                </div>
-              )}
+                        );
+                      }
+                      return null;
+                    })}
+                  </div>
+                )}
 
-              {/* Classification Guide */}
-              <div className="bg-gradient-to-br from-slate-50 to-indigo-50 rounded-lg md:rounded-xl p-3 md:p-4 border border-slate-200">
-                <h3 className="text-xs font-bold text-slate-700 mb-2 md:mb-3">UK Honours Classifications</h3>
-                <div className="space-y-1.5 md:space-y-2">
-                  <div className="flex items-center gap-2 text-xs">
-                    <div className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0"></div>
-                    <span className="font-medium text-slate-700">First Class:</span>
-                    <span className="text-slate-600">70%+</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs">
-                    <div className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0"></div>
-                    <span className="font-medium text-slate-700">Upper Second Class:</span>
-                    <span className="text-slate-600">60-69%</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs">
-                    <div className="w-2 h-2 rounded-full bg-yellow-500 flex-shrink-0"></div>
-                    <span className="font-medium text-slate-700">Lower Second Class:</span>
-                    <span className="text-slate-600">50-59%</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs">
-                    <div className="w-2 h-2 rounded-full bg-gray-500 flex-shrink-0"></div>
-                    <span className="font-medium text-slate-700">Third Class:</span>
-                    <span className="text-slate-600">40-49%</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs">
-                    <div className="w-2 h-2 rounded-full bg-red-500 flex-shrink-0"></div>
-                    <span className="font-medium text-slate-700">Fail:</span>
-                    <span className="text-slate-600">&lt;40%</span>
+                {/* Classification Guide */}
+                <div className="bg-gradient-to-br from-slate-50 to-indigo-50 rounded-lg md:rounded-xl p-3 md:p-4 border border-slate-200">
+                  <h3 className="text-xs font-bold text-slate-700 mb-2 md:mb-3">UK Honours Classifications</h3>
+                  <div className="space-y-1.5 md:space-y-2">
+                    <div className="flex items-center gap-2 text-xs">
+                      <div className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0"></div>
+                      <span className="font-medium text-slate-700">First Class:</span>
+                      <span className="text-slate-600">70%+</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs">
+                      <div className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0"></div>
+                      <span className="font-medium text-slate-700">Upper Second Class:</span>
+                      <span className="text-slate-600">60-69%</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs">
+                      <div className="w-2 h-2 rounded-full bg-yellow-500 flex-shrink-0"></div>
+                      <span className="font-medium text-slate-700">Lower Second Class:</span>
+                      <span className="text-slate-600">50-59%</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs">
+                      <div className="w-2 h-2 rounded-full bg-gray-500 flex-shrink-0"></div>
+                      <span className="font-medium text-slate-700">Third Class:</span>
+                      <span className="text-slate-600">40-49%</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs">
+                      <div className="w-2 h-2 rounded-full bg-red-500 flex-shrink-0"></div>
+                      <span className="font-medium text-slate-700">Fail:</span>
+                      <span className="text-slate-600">&lt;40%</span>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
       </div>
 
       {/* Clear Data Confirmation Modal */}
