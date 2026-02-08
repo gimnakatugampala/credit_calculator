@@ -3,7 +3,10 @@
 import { useState, useEffect } from 'react';
 
 export default function CreditCalculator() {
+  const [userName, setUserName] = useState('');
+  const [userBatch, setUserBatch] = useState('251P');
   const [semesters, setSemesters] = useState([]);
+  const [showClearModal, setShowClearModal] = useState(false);
 
   // UK degree classification boundaries
   const getClassification = (percentage) => {
@@ -19,9 +22,18 @@ export default function CreditCalculator() {
     const saved = localStorage.getItem('ukCreditCalculator');
     if (saved) {
       try {
-        setSemesters(JSON.parse(saved));
+        const data = JSON.parse(saved);
+        setUserName(data.userName || '');
+        setUserBatch(data.userBatch || '251P');
+        setSemesters(data.semesters || [
+          { id: Date.now(), name: 'Year 3 Semester 1', modules: [] }
+        ]);
       } catch (e) {
         console.error('Failed to load saved data:', e);
+        // Initialize with default semester if load fails
+        setSemesters([
+          { id: Date.now(), name: 'Year 3 Semester 1', modules: [] }
+        ]);
       }
     } else {
       // Initialize with Year 3 Semester 1 only
@@ -31,12 +43,17 @@ export default function CreditCalculator() {
     }
   }, []);
 
-  // Save to localStorage whenever semesters change
+  // Save to localStorage whenever data changes
   useEffect(() => {
-    if (semesters.length > 0) {
-      localStorage.setItem('ukCreditCalculator', JSON.stringify(semesters));
+    if (semesters.length > 0 || userName || userBatch) {
+      const dataToSave = {
+        userName,
+        userBatch,
+        semesters
+      };
+      localStorage.setItem('ukCreditCalculator', JSON.stringify(dataToSave));
     }
-  }, [semesters]);
+  }, [semesters, userName, userBatch]);
 
   function createNewModule() {
     return {
@@ -107,12 +124,13 @@ export default function CreditCalculator() {
   }
 
   function clearAllData() {
-    if (confirm('Are you sure you want to clear all data? This cannot be undone.')) {
-      setSemesters([
-        { id: Date.now(), name: 'Year 3 Semester 1', modules: [] }
-      ]);
-      localStorage.removeItem('ukCreditCalculator');
-    }
+    setUserName('');
+    setUserBatch('251P');
+    setSemesters([
+      { id: Date.now(), name: 'Year 3 Semester 1', modules: [] }
+    ]);
+    localStorage.removeItem('ukCreditCalculator');
+    setShowClearModal(false);
   }
 
   // Calculate weighted average
@@ -156,11 +174,41 @@ export default function CreditCalculator() {
           </p>
         </div>
 
+        {/* User Info Section */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg p-6 border border-slate-200/50 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Student Name
+              </label>
+              <input
+                type="text"
+                value={userName}
+                onChange={(e) => setUserName(e.target.value)}
+                placeholder="Enter your name"
+                className="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 text-slate-800 bg-white"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Batch
+              </label>
+              <input
+                type="text"
+                value={userBatch}
+                onChange={(e) => setUserBatch(e.target.value)}
+                placeholder="e.g., 251P"
+                className="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 text-slate-800 bg-white"
+              />
+            </div>
+          </div>
+        </div>
+
         {/* Main Content */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
           {/* Calculator Section - Takes 2 columns */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Semesters - Only show semesters that exist in state */}
+            {/* Semesters */}
             {semesters.map((semester, idx) => (
               <div key={semester.id} className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg p-6 border border-slate-200/50 hover:shadow-xl transition-shadow duration-300">
                 <div className="flex items-center justify-between mb-4">
@@ -264,7 +312,7 @@ export default function CreditCalculator() {
                   Add Semester
                 </button>
                 <button
-                  onClick={clearAllData}
+                  onClick={() => setShowClearModal(true)}
                   className="px-6 py-3 bg-white hover:bg-red-50 text-red-600 border-2 border-red-200 rounded-xl text-sm font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
                 >
                   Clear All
@@ -276,6 +324,24 @@ export default function CreditCalculator() {
             <div className="lg:col-span-1 space-y-6">
               {/* Main Score Card */}
               <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg p-6 border border-slate-200/50 sticky top-6">
+                {/* Student Info Display */}
+                {(userName || userBatch !== '251P') && (
+                  <div className="mb-6 pb-6 border-b border-slate-200">
+                    {userName && (
+                      <div className="text-center mb-2">
+                        <div className="text-lg font-bold text-slate-800" style={{ fontFamily: 'Georgia, serif' }}>
+                          {userName}
+                        </div>
+                      </div>
+                    )}
+                    <div className="text-center">
+                      <span className="inline-block px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-semibold">
+                        Batch {userBatch}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
                 <div className="text-center mb-6">
                   <div className="inline-block relative">
                     {/* Circular Progress Bar */}
@@ -311,7 +377,7 @@ export default function CreditCalculator() {
                     {/* Text overlay */}
                     <div className="absolute inset-0 flex flex-col items-center justify-center">
                       <div className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-1" style={{ fontFamily: 'Georgia, serif' }}>
-                        {weightedAverage.toFixed(2)}
+                        {weightedAverage.toFixed(2)}%
                       </div>
                       <div className="text-xs text-slate-500 mb-2">Cumulative Average</div>
                       <div className={`text-sm font-semibold ${classification.color}`}>
@@ -324,7 +390,7 @@ export default function CreditCalculator() {
                   </div>
                 </div>
 
-                {/* Semester Averages - Only show semesters with modules that have marks */}
+                {/* Semester Averages */}
                 {semesters.some(sem => sem.modules.some(m => m.mark !== '' && !isNaN(m.mark))) && (
                   <div className="space-y-3 mb-6">
                     <h3 className="text-sm font-bold text-slate-700 mb-3">Semester Averages</h3>
@@ -338,7 +404,6 @@ export default function CreditCalculator() {
                       }, 0);
                       const semesterAverage = semesterCredits > 0 ? semesterWeightedSum / semesterCredits : 0;
 
-                      // Only show semesters that have at least one module with a mark
                       if (semester.modules.some(m => m.mark !== '' && !isNaN(m.mark))) {
                         return (
                           <div key={semester.id} className="bg-gradient-to-r from-slate-50 to-blue-50 rounded-xl p-3 border border-slate-200">
@@ -357,26 +422,26 @@ export default function CreditCalculator() {
 
                 {/* Classification Guide */}
                 <div className="bg-gradient-to-br from-slate-50 to-indigo-50 rounded-xl p-4 border border-slate-200">
-                  <h3 className="text-xs font-bold text-slate-700 mb-3">UK Classifications</h3>
+                  <h3 className="text-xs font-bold text-slate-700 mb-3">UK Honours Classifications</h3>
                   <div className="space-y-2">
                     <div className="flex items-center gap-2 text-xs">
                       <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                      <span className="font-medium text-slate-700">First (1st):</span>
+                      <span className="font-medium text-slate-700">First Class:</span>
                       <span className="text-slate-600">70%+</span>
                     </div>
                     <div className="flex items-center gap-2 text-xs">
                       <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                      <span className="font-medium text-slate-700">Upper 2nd (2:1):</span>
+                      <span className="font-medium text-slate-700">Upper Second Class:</span>
                       <span className="text-slate-600">60-69%</span>
                     </div>
                     <div className="flex items-center gap-2 text-xs">
                       <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
-                      <span className="font-medium text-slate-700">Lower 2nd (2:2):</span>
+                      <span className="font-medium text-slate-700">Lower Second Class:</span>
                       <span className="text-slate-600">50-59%</span>
                     </div>
                     <div className="flex items-center gap-2 text-xs">
                       <div className="w-2 h-2 rounded-full bg-gray-500"></div>
-                      <span className="font-medium text-slate-700">Third (3rd):</span>
+                      <span className="font-medium text-slate-700">Third Class:</span>
                       <span className="text-slate-600">40-49%</span>
                     </div>
                     <div className="flex items-center gap-2 text-xs">
@@ -390,6 +455,43 @@ export default function CreditCalculator() {
             </div>
           </div>
       </div>
+
+      {/* Clear Data Confirmation Modal */}
+      {showClearModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 transform transition-all">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
+                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-slate-800">Clear All Data?</h3>
+              </div>
+            </div>
+            
+            <p className="text-slate-600 mb-6">
+              This will permanently delete all your modules, marks, and student information. This action cannot be undone.
+            </p>
+            
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowClearModal(false)}
+                className="flex-1 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={clearAllData}
+                className="flex-1 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl font-semibold transition-colors"
+              >
+                Clear All Data
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
