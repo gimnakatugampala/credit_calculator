@@ -4,8 +4,11 @@ import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@supabase/supabase-js';
 
 // Supabase configuration
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+// src/app/credit-calculator.jsx
+
+// Change these lines:
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
 // Initialize Supabase client only if credentials are provided
 const supabase = supabaseUrl && supabaseAnonKey 
@@ -399,7 +402,7 @@ export default function CreditCalculator() {
       
       <div className="relative max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-6 sm:py-8 md:py-12">
         {/* Sync Status Indicator */}
-        {supabase && (
+        {/* {supabase && (
           <div className="fixed top-4 right-4 z-50">
             <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium shadow-lg ${
               syncStatus === 'synced' ? 'bg-green-100 text-green-700' :
@@ -421,7 +424,7 @@ export default function CreditCalculator() {
               </span>
             </div>
           </div>
-        )}
+        )} */}
 
         {/* Header */}
         <div className="mb-6 md:mb-8 text-center">
