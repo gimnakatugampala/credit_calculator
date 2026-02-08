@@ -567,7 +567,7 @@ export default function CreditCalculator() {
                               value={module.title}
                               onChange={(e) => updateModule(semester.id, module.id, 'title', e.target.value)}
                               placeholder="Module Title"
-                              className="w-full px-2 py-1.5 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500"
+                              className="w-full px-2 py-1.5 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 text-black placeholder:text-slate-400"
                             />
                           </div>
                           <div className="grid grid-cols-2 gap-2">
@@ -577,7 +577,7 @@ export default function CreditCalculator() {
                                 type="number"
                                 value={module.credits}
                                 onChange={(e) => updateModule(semester.id, module.id, 'credits', e.target.value)}
-                                className="w-full px-2 py-1.5 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500"
+                                className="w-full px-2 py-1.5 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 text-black placeholder:text-slate-400"
                               />
                             </div>
                             <div>
@@ -589,7 +589,7 @@ export default function CreditCalculator() {
                                 placeholder="0-100"
                                 min="0"
                                 max="100"
-                                className="w-full px-2 py-1.5 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500"
+                                className="w-full px-2 py-1.5 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 text-black placeholder:text-slate-400"
                               />
                             </div>
                           </div>
