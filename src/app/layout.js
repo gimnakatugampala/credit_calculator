@@ -21,13 +21,13 @@ export const metadata = {
   openGraph: {
     type: 'website',
     locale: 'en_US',
-    url: 'https://yourdomain.com/',
+    url: 'https://nibm-credit-calculator.vercel.app/',
     siteName: 'NIBM Credit Calculator',
     title: 'NIBM - Coventry Credit Calculator | Track Your Degree Classification',
     description: 'Calculate your weighted credit average and UK degree classification for NIBM Coventry courses. Track your modules, marks, and semester performance in real-time.',
     images: [
       {
-        url: '/img/logo.png',
+        url: '/assets/img/logo.jpg',
         width: 1200,
         height: 630,
         alt: 'NIBM - Coventry Credit Calculator',
@@ -40,18 +40,18 @@ export const metadata = {
     card: 'summary_large_image',
     title: 'NIBM - Coventry Credit Calculator | Track Your Degree Classification',
     description: 'Calculate your weighted credit average and UK degree classification for NIBM Coventry courses. Track your modules, marks, and semester performance in real-time.',
-    images: ['/img/logo.png'],
+    images: ['/assets/img/logo.jpg'],
   },
   
   // Canonical URL
   alternates: {
-    canonical: 'https://yourdomain.com/',
+    canonical: 'https://nibm-credit-calculator.vercel.app/',
   },
   
   // Icons
   icons: {
-    icon: '/assets/img/logo.png',
-    apple: '/assets/img/logo.png',
+    icon: '/assets/img/logo.jpg',
+    apple: '/assets/img/logo.jpg',
   },
   
   // Viewport
