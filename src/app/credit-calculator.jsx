@@ -221,7 +221,8 @@ export default function CreditCalculator() {
         setSemesters([{
           id: Date.now(),
           name: 'Year 3 Semester 1',
-          modules: []
+          // modules: []
+          modules: [{ id: Date.now() + 1, title: '', credits: '', mark: '' }] // Added default module
         }]);
       }
     } catch (error) {
@@ -230,7 +231,8 @@ export default function CreditCalculator() {
       setSemesters([{
         id: Date.now(),
         name: 'Year 3 Semester 1',
-        modules: []
+        // modules: []
+        modules: [{ id: Date.now() + 1, title: '', credits: '', mark: '' }] // Added default module
       }]);
     }
 
@@ -357,7 +359,8 @@ export default function CreditCalculator() {
     setSemesters([{
       id: Date.now(),
       name: 'Year 3 Semester 1',
-      modules: []
+      // modules: []
+      modules: [{ id: Date.now() + 1, title: '', credits: '', mark: '' }] // Added default module
     }]);
     
     // Clear localStorage
