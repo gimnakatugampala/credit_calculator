@@ -33,8 +33,8 @@ export default function CreditCalculator() {
   // UK degree classification boundaries
   const getClassification = (percentage) => {
     if (percentage >= 70) return { name: 'First Class Honours', color: 'text-green-600' };
-    if (percentage >= 60) return { name: 'Upper Second Class (2:1)', color: 'text-blue-600' };
-    if (percentage >= 50) return { name: 'Lower Second Class (2:2)', color: 'text-yellow-600' };
+    if (percentage >= 60) return { name: 'Upper Second Class', color: 'text-blue-600' };
+    if (percentage >= 50) return { name: 'Lower Second Class', color: 'text-yellow-600' };
     if (percentage >= 40) return { name: 'Third Class Honours', color: 'text-gray-600' };
     return { name: 'Fail', color: 'text-red-600' };
   };
@@ -700,10 +700,27 @@ export default function CreditCalculator() {
                       <div className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-1" style={{ fontFamily: 'Georgia, serif' }}>
                         {weightedAverage.toFixed(2)}%
                       </div>
-                      <div className="text-xs text-slate-500 mb-2">Cumulative Average</div>
-                      <div className={`text-xs md:text-sm font-semibold ${classification.color}`}>
-                        {classification.name.split(' ')[0]}
-                      </div>
+                     <div className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">
+  Weighted Average
+</div>
+<div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full ${
+  classification.color === 'text-green-600' ? 'bg-green-50 border border-green-200' :
+  classification.color === 'text-blue-600' ? 'bg-blue-50 border border-blue-200' :
+  classification.color === 'text-yellow-600' ? 'bg-yellow-50 border border-yellow-200' :
+  classification.color === 'text-gray-600' ? 'bg-gray-50 border border-gray-200' :
+  'bg-red-50 border border-red-200'
+}`}>
+  <div className={`w-2 h-2 rounded-full ${
+    classification.color === 'text-green-600' ? 'bg-green-500 animate-pulse' :
+    classification.color === 'text-blue-600' ? 'bg-blue-500 animate-pulse' :
+    classification.color === 'text-yellow-600' ? 'bg-yellow-500 animate-pulse' :
+    classification.color === 'text-gray-600' ? 'bg-gray-500 animate-pulse' :
+    'bg-red-500 animate-pulse'
+  }`}></div>
+  <span className={`text-xs md:text-sm font-bold ${classification.color}`}>
+    {classification.name}
+  </span>
+</div>
                     </div>
                   </div>
                   <div className="text-slate-500 text-xs mt-4">
