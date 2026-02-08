@@ -278,18 +278,49 @@ export default function CreditCalculator() {
               <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg p-6 border border-slate-200/50 sticky top-6">
                 <div className="text-center mb-6">
                   <div className="inline-block relative">
-                    <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-indigo-400 blur-xl opacity-20"></div>
-                    <div className="relative bg-gradient-to-br from-white to-blue-50 rounded-2xl p-8 shadow-xl border border-blue-100">
-                      <div className="text-5xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-3" style={{ fontFamily: 'Georgia, serif' }}>
-                        {weightedAverage.toFixed(1)}%
+                    {/* Circular Progress Bar */}
+                    <svg className="w-48 h-48 transform -rotate-90" viewBox="0 0 160 160">
+                      {/* Background circle */}
+                      <circle
+                        cx="80"
+                        cy="80"
+                        r="70"
+                        fill="none"
+                        stroke="#e5e7eb"
+                        strokeWidth="12"
+                      />
+                      {/* Progress circle */}
+                      <circle
+                        cx="80"
+                        cy="80"
+                        r="70"
+                        fill="none"
+                        stroke={
+                          weightedAverage >= 70 ? '#16a34a' :
+                          weightedAverage >= 60 ? '#2563eb' :
+                          weightedAverage >= 50 ? '#ca8a04' :
+                          weightedAverage >= 40 ? '#6b7280' :
+                          '#dc2626'
+                        }
+                        strokeWidth="12"
+                        strokeLinecap="round"
+                        strokeDasharray={`${(weightedAverage / 100) * 440} 440`}
+                        className="transition-all duration-1000 ease-out"
+                      />
+                    </svg>
+                    {/* Text overlay */}
+                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                      <div className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-1" style={{ fontFamily: 'Georgia, serif' }}>
+                        {weightedAverage.toFixed(2)}
                       </div>
-                      <div className={`text-lg font-semibold mb-1 ${classification.color}`}>
-                        {classification.name}
-                      </div>
-                      <div className="text-slate-500 text-xs">
-                        {totalCredits} total credits
+                      <div className="text-xs text-slate-500 mb-2">Cumulative Average</div>
+                      <div className={`text-sm font-semibold ${classification.color}`}>
+                        {classification.name.split(' ')[0]}
                       </div>
                     </div>
+                  </div>
+                  <div className="text-slate-500 text-xs mt-4">
+                    {totalCredits} total credits
                   </div>
                 </div>
 
