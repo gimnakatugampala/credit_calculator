@@ -534,19 +534,19 @@ export default function CreditCalculator() {
                               <input
                                 type="text"
                                 value={module.title}
-                                onChange={(e) => !isBscMode && updateModule(semester.id, module.id, 'title', e.target.value)}
+                                onChange={(e) => updateModule(semester.id, module.id, 'title', e.target.value)}
                                 placeholder="Module Title"
-                                readOnly={isBscMode}
-                                className={`w-full px-2 py-1.5 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 ${isBscMode ? 'bg-slate-50 text-slate-600 cursor-default' : ''}`}
+                                
+                                className={`w-full px-2 py-1.5 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500`}
                               />
                             </td>
                             <td className="py-2 px-3">
                               <input
                                 type="number"
                                 value={module.credits}
-                                onChange={(e) => !isBscMode && updateModule(semester.id, module.id, 'credits', e.target.value)}
-                                readOnly={isBscMode}
-                                className={`w-20 px-2 py-1.5 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 ${isBscMode ? 'bg-slate-50 text-slate-600 cursor-default' : ''}`}
+                                onChange={(e) => updateModule(semester.id, module.id, 'credits', e.target.value)}
+                                
+                                className={`w-20 px-2 py-1.5 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500`}
                               />
                             </td>
                             <td className="py-2 px-3">
@@ -586,10 +586,10 @@ export default function CreditCalculator() {
                             <input
                               type="text"
                               value={module.title}
-                              onChange={(e) => !isBscMode && updateModule(semester.id, module.id, 'title', e.target.value)}
+                              onChange={(e) => updateModule(semester.id, module.id, 'title', e.target.value)}
                               placeholder="Module Title"
-                              readOnly={isBscMode}
-                              className={`w-full px-2 py-1.5 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 text-black placeholder:text-slate-400 ${isBscMode ? 'bg-slate-50 text-slate-600 cursor-default' : ''}`}
+                              
+                              className={`w-full px-2 py-1.5 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 text-black placeholder:text-slate-400`}
                             />
                           </div>
                           <div className="grid grid-cols-2 gap-2">
@@ -598,9 +598,9 @@ export default function CreditCalculator() {
                               <input
                                 type="number"
                                 value={module.credits}
-                                onChange={(e) => !isBscMode && updateModule(semester.id, module.id, 'credits', e.target.value)}
-                                readOnly={isBscMode}
-                                className={`w-full px-2 py-1.5 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 text-black placeholder:text-slate-400 ${isBscMode ? 'bg-slate-50 text-slate-600 cursor-default' : ''}`}
+                                onChange={(e) => updateModule(semester.id, module.id, 'credits', e.target.value)}
+                                
+                                className={`w-full px-2 py-1.5 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 text-black placeholder:text-slate-400`}
                               />
                             </div>
                             <div>
@@ -765,7 +765,7 @@ export default function CreditCalculator() {
                   </div>
                   <div className="text-slate-500 text-xs mt-4">
                     {gradedCredits > 0
-                      ? `${gradedCredits} of ${totalCredits} credits`
+                      ? `${gradedCredits} of ${totalCredits} credits graded`
                       : `${totalCredits} total credits`
                     }
                   </div>
@@ -791,7 +791,7 @@ export default function CreditCalculator() {
                               <h4 className="text-xs md:text-sm font-semibold text-slate-700">{semester.name}</h4>
                               <span className="text-base md:text-lg font-bold text-blue-600">{semesterAverage.toFixed(1)}%</span>
                             </div>
-                            <div className="text-xs text-slate-500">{semesterCredits} credits</div>
+                            <div className="text-xs text-slate-500">{semesterCredits} credits graded</div>
                           </div>
                         );
                       }
