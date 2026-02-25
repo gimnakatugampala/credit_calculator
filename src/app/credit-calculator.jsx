@@ -67,6 +67,7 @@ export default function CreditCalculator() {
   
   const syncQueueRef = useRef([]);
   const isSyncingRef = useRef(false);
+  const onboardingPendingRef = useRef(false);
 
   const getClassification = (percentage) => {
     if (percentage >= 70) return { name: 'First Class Honours', color: 'text-green-600' };
@@ -241,12 +242,9 @@ export default function CreditCalculator() {
         setSemesters(data.semesters || []);
       } else {
         // First time visitor - show onboarding
+        // Do NOT pre-set semesters here; wait until user answers so we don't accidentally save to localStorage
+        onboardingPendingRef.current = true;
         setShowOnboarding(true);
-        setSemesters([{
-          id: Date.now(),
-          name: 'Year 3 Semester 1',
-          modules: [{ id: Date.now() + 1, title: '', credits: '', mark: '' }]
-        }]);
       }
     } catch (error) {
       console.error('Error loading from localStorage:', error);
@@ -287,6 +285,8 @@ export default function CreditCalculator() {
   }, []);
 
   useEffect(() => {
+    // Don't save anything until the user has answered the onboarding question
+    if (onboardingPendingRef.current) return;
     if (semesters.length > 0) {
       const data = { userName, userBatch, semesters };
       saveToLocalStorage(data);
@@ -366,12 +366,14 @@ export default function CreditCalculator() {
   };
 
   const handleBscYes = () => {
+    onboardingPendingRef.current = false;
     setSemesters(BSC_COMPUTING_MODULES);
     setIsBscMode(true);
     setShowOnboarding(false);
   };
 
   const handleBscNo = () => {
+    onboardingPendingRef.current = false;
     setSemesters([{
       id: Date.now(),
       name: 'Year 3 Semester 1',
@@ -765,7 +767,7 @@ export default function CreditCalculator() {
                   </div>
                   <div className="text-slate-500 text-xs mt-4">
                     {gradedCredits > 0
-                      ? `${gradedCredits} of ${totalCredits} credits graded`
+                      ? `${gradedCredits} of ${totalCredits} credits`
                       : `${totalCredits} total credits`
                     }
                   </div>
@@ -791,7 +793,7 @@ export default function CreditCalculator() {
                               <h4 className="text-xs md:text-sm font-semibold text-slate-700">{semester.name}</h4>
                               <span className="text-base md:text-lg font-bold text-blue-600">{semesterAverage.toFixed(1)}%</span>
                             </div>
-                            <div className="text-xs text-slate-500">{semesterCredits} credits graded</div>
+                            <div className="text-xs text-slate-500">{semesterCredits} credits</div>
                           </div>
                         );
                       }
