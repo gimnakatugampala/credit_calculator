@@ -3,14 +3,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@supabase/supabase-js';
 
-// Supabase configuration
-// src/app/credit-calculator.jsx
-
-// Change these lines:
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
-// Initialize Supabase client only if credentials are provided
 const supabase = supabaseUrl && supabaseAnonKey 
   ? createClient(supabaseUrl, supabaseAnonKey)
   : null;
@@ -25,12 +20,11 @@ export default function CreditCalculator() {
   const [showClearModal, setShowClearModal] = useState(false);
   const [userId, setUserId] = useState(null);
   const [isOnline, setIsOnline] = useState(true);
-  const [syncStatus, setSyncStatus] = useState('synced'); // 'synced', 'syncing', 'offline', 'error'
+  const [syncStatus, setSyncStatus] = useState('synced');
   
   const syncQueueRef = useRef([]);
   const isSyncingRef = useRef(false);
 
-  // UK degree classification boundaries
   const getClassification = (percentage) => {
     if (percentage >= 70) return { name: 'First Class Honours', color: 'text-green-600' };
     if (percentage >= 60) return { name: 'Upper Second Class', color: 'text-blue-600' };
@@ -39,7 +33,6 @@ export default function CreditCalculator() {
     return { name: 'Fail', color: 'text-red-600' };
   };
 
-  // Generate or retrieve user ID for this browser
   const getUserId = () => {
     let id = localStorage.getItem('ukCreditCalculatorUserId');
     if (!id) {
@@ -49,7 +42,6 @@ export default function CreditCalculator() {
     return id;
   };
 
-  // Load sync queue from localStorage
   const loadSyncQueue = () => {
     try {
       const queue = localStorage.getItem(SYNC_QUEUE_KEY);
@@ -60,7 +52,6 @@ export default function CreditCalculator() {
     }
   };
 
-  // Save sync queue to localStorage
   const saveSyncQueue = (queue) => {
     try {
       localStorage.setItem(SYNC_QUEUE_KEY, JSON.stringify(queue));
@@ -69,14 +60,12 @@ export default function CreditCalculator() {
     }
   };
 
-  // Add operation to sync queue
   const addToSyncQueue = (operation) => {
     const queue = [...syncQueueRef.current, { ...operation, timestamp: Date.now() }];
     syncQueueRef.current = queue;
     saveSyncQueue(queue);
   };
 
-  // Process sync queue
   const processSyncQueue = async () => {
     if (!supabase || isSyncingRef.current || syncQueueRef.current.length === 0) {
       return;
@@ -114,12 +103,10 @@ export default function CreditCalculator() {
               console.warn('Unknown operation type:', operation.type);
           }
 
-          // Remove successfully synced operation from queue
           syncQueueRef.current = syncQueueRef.current.filter(op => op.timestamp !== operation.timestamp);
         } catch (error) {
           console.error('Error processing queue item:', error);
-          // Keep the failed operation in queue for retry
-          break; // Stop processing on first error
+          break;
         }
       }
 
@@ -138,7 +125,6 @@ export default function CreditCalculator() {
     }
   };
 
-  // Save to Supabase (with queue fallback)
   const saveToSupabase = async (data) => {
     if (!supabase) return;
 
@@ -149,7 +135,6 @@ export default function CreditCalculator() {
     };
 
     try {
-      // Try immediate sync
       await supabase
         .from('calculator_data')
         .upsert({
@@ -163,14 +148,12 @@ export default function CreditCalculator() {
       setSyncStatus('synced');
     } catch (error) {
       console.error('Error saving to Supabase:', error);
-      // Add to queue for later sync
       addToSyncQueue(operation);
       setSyncStatus('offline');
       setIsOnline(false);
     }
   };
 
-  // Delete from Supabase (with queue fallback)
   const deleteFromSupabase = async () => {
     if (!supabase) return;
 
@@ -188,14 +171,12 @@ export default function CreditCalculator() {
       setSyncStatus('synced');
     } catch (error) {
       console.error('Error deleting from Supabase:', error);
-      // Add to queue for later sync
       addToSyncQueue(operation);
       setSyncStatus('offline');
       setIsOnline(false);
     }
   };
 
-  // Save to localStorage (always happens immediately)
   const saveToLocalStorage = (data) => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
@@ -204,7 +185,6 @@ export default function CreditCalculator() {
     }
   };
 
-  // Load from localStorage on mount
   useEffect(() => {
     const id = getUserId();
     setUserId(id);
@@ -217,35 +197,28 @@ export default function CreditCalculator() {
         setUserBatch(data.userBatch || '251P');
         setSemesters(data.semesters || []);
       } else {
-        // Initialize with default semester
         setSemesters([{
           id: Date.now(),
           name: 'Year 3 Semester 1',
-          // modules: []
-          modules: [{ id: Date.now() + 1, title: '', credits: '', mark: '' }] // Added default module
+          modules: [{ id: Date.now() + 1, title: '', credits: '', mark: '' }]
         }]);
       }
     } catch (error) {
       console.error('Error loading from localStorage:', error);
-      // Initialize with default semester on error
       setSemesters([{
         id: Date.now(),
         name: 'Year 3 Semester 1',
-        // modules: []
-        modules: [{ id: Date.now() + 1, title: '', credits: '', mark: '' }] // Added default module
+        modules: [{ id: Date.now() + 1, title: '', credits: '', mark: '' }]
       }]);
     }
 
-    // Load sync queue
     syncQueueRef.current = loadSyncQueue();
 
-    // Process any pending sync operations
     if (supabase) {
       processSyncQueue();
     }
   }, []);
 
-  // Monitor online status
   useEffect(() => {
     const handleOnline = () => {
       setIsOnline(true);
@@ -268,22 +241,16 @@ export default function CreditCalculator() {
     };
   }, []);
 
-  // Auto-save when data changes
   useEffect(() => {
     if (semesters.length > 0) {
       const data = { userName, userBatch, semesters };
-      
-      // Always save to localStorage immediately
       saveToLocalStorage(data);
-      
-      // Try to save to Supabase
       if (userId) {
         saveToSupabase(data);
       }
     }
   }, [userName, userBatch, semesters, userId]);
 
-  // Periodic sync attempt (every 30 seconds)
   useEffect(() => {
     if (!supabase) return;
 
@@ -359,19 +326,21 @@ export default function CreditCalculator() {
     setSemesters([{
       id: Date.now(),
       name: 'Year 3 Semester 1',
-      // modules: []
-      modules: [{ id: Date.now() + 1, title: '', credits: '', mark: '' }] // Added default module
+      modules: [{ id: Date.now() + 1, title: '', credits: '', mark: '' }]
     }]);
     
-    // Clear localStorage
     localStorage.removeItem(STORAGE_KEY);
     
-    // Delete from Supabase
     if (userId) {
       deleteFromSupabase();
     }
     
     setShowClearModal(false);
+  };
+
+  // Only include modules that have a mark explicitly entered (not empty string)
+  const hasValidMark = (module) => {
+    return module.mark !== '' && module.mark !== null && module.mark !== undefined && !isNaN(parseFloat(module.mark));
   };
 
   const calculateWeightedAverage = () => {
@@ -381,9 +350,9 @@ export default function CreditCalculator() {
     semesters.forEach(semester => {
       semester.modules.forEach(module => {
         const credits = parseInt(module.credits) || 0;
-        const mark = parseFloat(module.mark);
-        
-        if (!isNaN(mark) && mark !== '' && credits > 0) {
+        // Only calculate if mark has been explicitly entered
+        if (hasValidMark(module) && credits > 0) {
+          const mark = parseFloat(module.mark);
           totalCredits += credits;
           weightedSum += mark * credits;
         }
@@ -399,36 +368,16 @@ export default function CreditCalculator() {
     sum + sem.modules.reduce((s, m) => s + (parseInt(m.credits) || 0), 0), 0
   );
 
+  // Only count credits from modules that have marks entered
+  const gradedCredits = semesters.reduce((sum, sem) => 
+    sum + sem.modules.reduce((s, m) => s + (hasValidMark(m) ? (parseInt(m.credits) || 0) : 0), 0), 0
+  );
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGQ9Ik0zNiAxOGMzLjMxIDAgNiAyLjY5IDYgNnMtMi42OSA2LTYgNi02LTIuNjktNi02IDIuNjktNiA2LTZ6TTI0IDQyYzMuMzEgMCA2IDIuNjkgNiA2cy0yLjY5IDYtNiA2LTYtMi42OS02LTYgMi42OS02IDYtNnoiIHN0cm9rZT0iIzk0YTNiOCIgc3Ryb2tlLXdpZHRoPSIuNSIgb3BhY2l0eT0iLjEiLz48L2c+PC9zdmc+')] opacity-40"></div>
       
       <div className="relative max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-6 sm:py-8 md:py-12">
-        {/* Sync Status Indicator */}
-        {/* {supabase && (
-          <div className="fixed top-4 right-4 z-50">
-            <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium shadow-lg ${
-              syncStatus === 'synced' ? 'bg-green-100 text-green-700' :
-              syncStatus === 'syncing' ? 'bg-blue-100 text-blue-700' :
-              syncStatus === 'offline' ? 'bg-yellow-100 text-yellow-700' :
-              'bg-red-100 text-red-700'
-            }`}>
-              <div className={`w-2 h-2 rounded-full ${
-                syncStatus === 'synced' ? 'bg-green-500' :
-                syncStatus === 'syncing' ? 'bg-blue-500 animate-pulse' :
-                syncStatus === 'offline' ? 'bg-yellow-500' :
-                'bg-red-500'
-              }`}></div>
-              <span>
-                {syncStatus === 'synced' ? 'Synced' :
-                 syncStatus === 'syncing' ? 'Syncing...' :
-                 syncStatus === 'offline' ? 'Offline Mode' :
-                 'Sync Error'}
-              </span>
-            </div>
-          </div>
-        )} */}
-
         {/* Header */}
         <div className="mb-6 md:mb-8 text-center">
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold bg-gradient-to-r from-slate-800 via-blue-900 to-indigo-900 bg-clip-text text-transparent mb-2" 
@@ -679,73 +628,90 @@ export default function CreditCalculator() {
                         stroke="#e5e7eb"
                         strokeWidth="12"
                       />
-                      {/* Progress circle */}
-                      <circle
-                        cx="80"
-                        cy="80"
-                        r="70"
-                        fill="none"
-                        stroke={
-                          weightedAverage >= 70 ? '#16a34a' :
-                          weightedAverage >= 60 ? '#2563eb' :
-                          weightedAverage >= 50 ? '#ca8a04' :
-                          weightedAverage >= 40 ? '#6b7280' :
-                          '#dc2626'
-                        }
-                        strokeWidth="12"
-                        strokeLinecap="round"
-                        strokeDasharray={`${(weightedAverage / 100) * 440} 440`}
-                        className="transition-all duration-1000 ease-out"
-                      />
+                      {/* Progress circle - only shows when there are graded credits */}
+                      {gradedCredits > 0 && (
+                        <circle
+                          cx="80"
+                          cy="80"
+                          r="70"
+                          fill="none"
+                          stroke={
+                            weightedAverage >= 70 ? '#16a34a' :
+                            weightedAverage >= 60 ? '#2563eb' :
+                            weightedAverage >= 50 ? '#ca8a04' :
+                            weightedAverage >= 40 ? '#6b7280' :
+                            '#dc2626'
+                          }
+                          strokeWidth="12"
+                          strokeLinecap="round"
+                          strokeDasharray={`${(weightedAverage / 100) * 440} 440`}
+                          className="transition-all duration-1000 ease-out"
+                        />
+                      )}
                     </svg>
                     {/* Text overlay */}
                     <div className="absolute inset-0 flex flex-col items-center justify-center">
-                      <div className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-1" style={{ fontFamily: 'Georgia, serif' }}>
-                        {weightedAverage.toFixed(2)}%
-                      </div>
-                     <div className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">
-  Weighted Average
-</div>
-<div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full ${
-  classification.color === 'text-green-600' ? 'bg-green-50 border border-green-200' :
-  classification.color === 'text-blue-600' ? 'bg-blue-50 border border-blue-200' :
-  classification.color === 'text-yellow-600' ? 'bg-yellow-50 border border-yellow-200' :
-  classification.color === 'text-gray-600' ? 'bg-gray-50 border border-gray-200' :
-  'bg-red-50 border border-red-200'
-}`}>
-  <div className={`w-2 h-2 rounded-full ${
-    classification.color === 'text-green-600' ? 'bg-green-500 animate-pulse' :
-    classification.color === 'text-blue-600' ? 'bg-blue-500 animate-pulse' :
-    classification.color === 'text-yellow-600' ? 'bg-yellow-500 animate-pulse' :
-    classification.color === 'text-gray-600' ? 'bg-gray-500 animate-pulse' :
-    'bg-red-500 animate-pulse'
-  }`}></div>
-  <span className={`text-xs md:text-sm font-bold ${classification.color}`}>
-    {classification.name}
-  </span>
-</div>
+                      {gradedCredits > 0 ? (
+                        <>
+                          <div className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-1" style={{ fontFamily: 'Georgia, serif' }}>
+                            {weightedAverage.toFixed(2)}%
+                          </div>
+                          <div className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">
+                            Weighted Average
+                          </div>
+                          <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full ${
+                            classification.color === 'text-green-600' ? 'bg-green-50 border border-green-200' :
+                            classification.color === 'text-blue-600' ? 'bg-blue-50 border border-blue-200' :
+                            classification.color === 'text-yellow-600' ? 'bg-yellow-50 border border-yellow-200' :
+                            classification.color === 'text-gray-600' ? 'bg-gray-50 border border-gray-200' :
+                            'bg-red-50 border border-red-200'
+                          }`}>
+                            <div className={`w-2 h-2 rounded-full ${
+                              classification.color === 'text-green-600' ? 'bg-green-500 animate-pulse' :
+                              classification.color === 'text-blue-600' ? 'bg-blue-500 animate-pulse' :
+                              classification.color === 'text-yellow-600' ? 'bg-yellow-500 animate-pulse' :
+                              classification.color === 'text-gray-600' ? 'bg-gray-500 animate-pulse' :
+                              'bg-red-500 animate-pulse'
+                            }`}></div>
+                            <span className={`text-xs md:text-sm font-bold ${classification.color}`}>
+                              {classification.name}
+                            </span>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="text-2xl md:text-3xl font-bold text-slate-300 mb-1" style={{ fontFamily: 'Georgia, serif' }}>
+                            —
+                          </div>
+                          <div className="text-xs font-medium text-slate-400 uppercase tracking-wider text-center px-4">
+                            Enter marks to see your average
+                          </div>
+                        </>
+                      )}
                     </div>
                   </div>
                   <div className="text-slate-500 text-xs mt-4">
-                    {totalCredits} total credits
+                    {gradedCredits > 0
+                      ? `${gradedCredits} of ${totalCredits} credits`
+                      : `${totalCredits} total credits`
+                    }
                   </div>
                 </div>
 
-                {/* Semester Averages */}
-                {semesters.some(sem => sem.modules.some(m => m.mark !== '' && !isNaN(m.mark))) && (
+                {/* Semester Averages - only show semesters with at least one mark entered */}
+                {semesters.some(sem => sem.modules.some(m => hasValidMark(m))) && (
                   <div className="space-y-2 md:space-y-3 mb-4 md:mb-6">
                     <h3 className="text-xs md:text-sm font-bold text-slate-700 mb-2 md:mb-3">Semester Averages</h3>
                     {semesters.map(semester => {
-                      const semesterCredits = semester.modules.reduce((sum, m) => sum + (parseInt(m.credits) || 0), 0);
-                      const semesterWeightedSum = semester.modules.reduce((sum, m) => {
-                        if (m.mark !== '' && !isNaN(m.mark)) {
-                          return sum + (parseFloat(m.mark) * (parseInt(m.credits) || 0));
-                        }
-                        return sum;
+                      // Only count modules that have marks entered
+                      const gradedModules = semester.modules.filter(m => hasValidMark(m) && (parseInt(m.credits) || 0) > 0);
+                      const semesterCredits = gradedModules.reduce((sum, m) => sum + (parseInt(m.credits) || 0), 0);
+                      const semesterWeightedSum = gradedModules.reduce((sum, m) => {
+                        return sum + (parseFloat(m.mark) * (parseInt(m.credits) || 0));
                       }, 0);
                       const semesterAverage = semesterCredits > 0 ? semesterWeightedSum / semesterCredits : 0;
 
-                      if (semester.modules.some(m => m.mark !== '' && !isNaN(m.mark))) {
+                      if (gradedModules.length > 0) {
                         return (
                           <div key={semester.id} className="bg-gradient-to-r from-slate-50 to-blue-50 rounded-lg md:rounded-xl p-2.5 md:p-3 border border-slate-200">
                             <div className="flex justify-between items-center mb-1">
