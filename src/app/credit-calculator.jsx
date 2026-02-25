@@ -12,12 +12,55 @@ const supabase = supabaseUrl && supabaseAnonKey
 
 const STORAGE_KEY = 'ukCreditCalculator';
 const SYNC_QUEUE_KEY = 'ukCreditCalculatorSyncQueue';
+const ONBOARDING_KEY = 'ukCreditCalculatorOnboarded';
+
+const BSC_COMPUTING_MODULES = [
+  {
+    id: 'bsc-sem-1',
+    name: 'Year 3 Semester 1',
+    modules: [
+      { id: 'bsc-1-1', title: 'Agile', credits: '20', mark: '' },
+      { id: 'bsc-1-2', title: 'User Experience Designing', credits: '20', mark: '' },
+      { id: 'bsc-1-3', title: 'Programming, Data Structures and Algorithms-2', credits: '20', mark: '' },
+    ]
+  },
+  {
+    id: 'bsc-sem-2',
+    name: 'Year 3 Semester 2',
+    modules: [
+      { id: 'bsc-2-1', title: 'Technology and Its Social, Legal and Ethical Context', credits: '10', mark: '' },
+      { id: 'bsc-2-2', title: 'Cyber Security', credits: '20', mark: '' },
+      { id: 'bsc-2-3', title: 'Data Science', credits: '20', mark: '' },
+      { id: 'bsc-2-4', title: 'Effective Communication Skills', credits: '10', mark: '' },
+    ]
+  },
+  {
+    id: 'bsc-sem-3',
+    name: 'Year 4 Semester 1',
+    modules: [
+      { id: 'bsc-3-1', title: 'Web API Development', credits: '20', mark: '' },
+      { id: 'bsc-3-2', title: 'Project Discovery', credits: '20', mark: '' },
+      { id: 'bsc-3-3', title: 'IOS Development', credits: '20', mark: '' },
+    ]
+  },
+  {
+    id: 'bsc-sem-4',
+    name: 'Year 4 Semester 2',
+    modules: [
+      { id: 'bsc-4-1', title: 'Computer Vision', credits: '20', mark: '' },
+      { id: 'bsc-4-2', title: 'Artificial Intelligence', credits: '10', mark: '' },
+      { id: 'bsc-4-3', title: 'Dissertation and Project Artefact', credits: '30', mark: '' },
+    ]
+  },
+];
 
 export default function CreditCalculator() {
   const [userName, setUserName] = useState('');
   const [userBatch, setUserBatch] = useState('251P');
   const [semesters, setSemesters] = useState([]);
   const [showClearModal, setShowClearModal] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [isBscMode, setIsBscMode] = useState(false);
   const [userId, setUserId] = useState(null);
   const [isOnline, setIsOnline] = useState(true);
   const [syncStatus, setSyncStatus] = useState('synced');
@@ -197,6 +240,8 @@ export default function CreditCalculator() {
         setUserBatch(data.userBatch || '251P');
         setSemesters(data.semesters || []);
       } else {
+        // First time visitor - show onboarding
+        setShowOnboarding(true);
         setSemesters([{
           id: Date.now(),
           name: 'Year 3 Semester 1',
@@ -320,6 +365,22 @@ export default function CreditCalculator() {
     }));
   };
 
+  const handleBscYes = () => {
+    setSemesters(BSC_COMPUTING_MODULES);
+    setIsBscMode(true);
+    setShowOnboarding(false);
+  };
+
+  const handleBscNo = () => {
+    setSemesters([{
+      id: Date.now(),
+      name: 'Year 3 Semester 1',
+      modules: [{ id: Date.now() + 1, title: '', credits: '', mark: '' }]
+    }]);
+    setIsBscMode(false);
+    setShowOnboarding(false);
+  };
+
   const clearAllData = () => {
     setUserName('');
     setUserBatch('251P');
@@ -387,6 +448,12 @@ export default function CreditCalculator() {
           <p className="text-slate-600 text-sm md:text-base font-light px-4">
             Track your weighted credits and degree classification
           </p>
+          {isBscMode && (
+            <div className="mt-3 inline-flex items-center gap-2 px-4 py-1.5 bg-blue-100 border border-blue-200 rounded-full">
+              <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
+              <span className="text-xs font-semibold text-blue-700">BSc Computing — Modules Pre-loaded</span>
+            </div>
+          )}
         </div>
 
         {/* User Info Section */}
@@ -467,17 +534,19 @@ export default function CreditCalculator() {
                               <input
                                 type="text"
                                 value={module.title}
-                                onChange={(e) => updateModule(semester.id, module.id, 'title', e.target.value)}
+                                onChange={(e) => !isBscMode && updateModule(semester.id, module.id, 'title', e.target.value)}
                                 placeholder="Module Title"
-                                className="w-full px-2 py-1.5 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500"
+                                readOnly={isBscMode}
+                                className={`w-full px-2 py-1.5 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 ${isBscMode ? 'bg-slate-50 text-slate-600 cursor-default' : ''}`}
                               />
                             </td>
                             <td className="py-2 px-3">
                               <input
                                 type="number"
                                 value={module.credits}
-                                onChange={(e) => updateModule(semester.id, module.id, 'credits', e.target.value)}
-                                className="w-20 px-2 py-1.5 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500"
+                                onChange={(e) => !isBscMode && updateModule(semester.id, module.id, 'credits', e.target.value)}
+                                readOnly={isBscMode}
+                                className={`w-20 px-2 py-1.5 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 ${isBscMode ? 'bg-slate-50 text-slate-600 cursor-default' : ''}`}
                               />
                             </td>
                             <td className="py-2 px-3">
@@ -517,9 +586,10 @@ export default function CreditCalculator() {
                             <input
                               type="text"
                               value={module.title}
-                              onChange={(e) => updateModule(semester.id, module.id, 'title', e.target.value)}
+                              onChange={(e) => !isBscMode && updateModule(semester.id, module.id, 'title', e.target.value)}
                               placeholder="Module Title"
-                              className="w-full px-2 py-1.5 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 text-black placeholder:text-slate-400"
+                              readOnly={isBscMode}
+                              className={`w-full px-2 py-1.5 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 text-black placeholder:text-slate-400 ${isBscMode ? 'bg-slate-50 text-slate-600 cursor-default' : ''}`}
                             />
                           </div>
                           <div className="grid grid-cols-2 gap-2">
@@ -528,8 +598,9 @@ export default function CreditCalculator() {
                               <input
                                 type="number"
                                 value={module.credits}
-                                onChange={(e) => updateModule(semester.id, module.id, 'credits', e.target.value)}
-                                className="w-full px-2 py-1.5 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 text-black placeholder:text-slate-400"
+                                onChange={(e) => !isBscMode && updateModule(semester.id, module.id, 'credits', e.target.value)}
+                                readOnly={isBscMode}
+                                className={`w-full px-2 py-1.5 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 text-black placeholder:text-slate-400 ${isBscMode ? 'bg-slate-50 text-slate-600 cursor-default' : ''}`}
                               />
                             </div>
                             <div>
@@ -561,6 +632,7 @@ export default function CreditCalculator() {
                   </>
                 )}
 
+                  {!isBscMode && (
                   <button
                     onClick={() => addModule(semester.id)}
                     className="mt-3 w-full sm:w-auto px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg md:rounded-xl text-sm font-medium transition-all duration-200 hover:shadow-md flex items-center justify-center gap-2"
@@ -570,6 +642,7 @@ export default function CreditCalculator() {
                     </svg>
                     Add Module
                   </button>
+                  )}
                 </div>
               ))}
 
@@ -762,6 +835,54 @@ export default function CreditCalculator() {
             </div>
           </div>
       </div>
+
+      {/* Onboarding Modal */}
+      {showOnboarding && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 transform transition-all animate-in">
+            {/* Icon */}
+            <div className="flex justify-center mb-4">
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg">
+                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l9-5-9-5-9 5 9 5z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
+                </svg>
+              </div>
+            </div>
+
+            <h2 className="text-xl font-bold text-slate-800 text-center mb-2" style={{ fontFamily: 'Georgia, serif' }}>
+              Welcome to NIBM Credit Calculator
+            </h2>
+            <p className="text-slate-500 text-sm text-center mb-6">
+              Are you a <span className="font-semibold text-blue-600">BSc Computing</span> student at NIBM?
+            </p>
+
+            <div className="bg-blue-50 rounded-xl p-4 border border-blue-100 mb-6">
+              <p className="text-xs text-blue-700 text-center">
+                If yes, we'll pre-load all your modules and credits — you just need to enter your marks!
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={handleBscYes}
+                className="w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                Yes, I'm a BSc Computing Student
+              </button>
+              <button
+                onClick={handleBscNo}
+                className="w-full px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold transition-colors duration-200"
+              >
+                No, load the default calculator
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Clear Data Confirmation Modal */}
       {showClearModal && (
