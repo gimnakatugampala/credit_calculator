@@ -853,14 +853,25 @@ export default function CreditCalculator() {
             <h2 className="text-xl font-bold text-slate-800 text-center mb-2" style={{ fontFamily: 'Georgia, serif' }}>
               Welcome to NIBM Credit Calculator
             </h2>
-            <p className="text-slate-500 text-sm text-center mb-6">
+            <p className="text-slate-500 text-sm text-center mb-4">
               Are you a <span className="font-semibold text-blue-600">BSc Computing</span> student at NIBM?
             </p>
 
-            <div className="bg-blue-50 rounded-xl p-4 border border-blue-100 mb-6">
+            <div className="bg-blue-50 rounded-xl p-3 border border-blue-100 mb-3">
               <p className="text-xs text-blue-700 text-center">
-                If yes, we'll pre-load all your modules and credits — you just need to enter your marks!
+                ✓ If yes, we'll pre-load all your modules and credits — you just need to enter your marks!
               </p>
+            </div>
+
+            <div className="bg-amber-50 rounded-xl p-3 border border-amber-200 mb-5">
+              <div className="flex items-start gap-2">
+                <svg className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <p className="text-xs text-amber-700 leading-relaxed">
+                  <span className="font-bold">Ethical Hacking</span> or <span className="font-bold">Business IT</span> student? Please select <span className="font-bold">"No"</span> — your programme has a different module structure, so you'll enter your modules manually.
+                </p>
+              </div>
             </div>
 
             <div className="flex flex-col gap-3">
