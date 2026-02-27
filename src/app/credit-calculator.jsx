@@ -70,11 +70,6 @@ export default function CreditCalculator() {
   const isSyncingRef = useRef(false);
   const onboardingPendingRef = useRef(false);
 
-  // Prevent scroll from changing number input values
-  const handleNumberWheel = (e) => {
-    e.target.blur();
-  };
-
   const getClassification = (percentage) => {
     if (percentage >= 70) return { name: 'First Class Honours', color: 'text-green-600' };
     if (percentage >= 60) return { name: 'Upper Second Class', color: 'text-blue-600' };
@@ -444,6 +439,19 @@ export default function CreditCalculator() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+      <style>{`
+        input[type=number]::-webkit-inner-spin-button,
+        input[type=number]::-webkit-outer-spin-button { 
+          -webkit-appearance: none; 
+          margin: 0; 
+        }
+        input[type=number] { 
+          -moz-appearance: textfield;
+        }
+        input[type=number]:focus {
+          pointer-events: auto;
+        }
+      `}</style>
       <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGQ9Ik0zNiAxOGMzLjMxIDAgNiAyLjY5IDYgNnMtMi42OSA2LTYgNi02LTIuNjktNi02IDIuNjktNiA2LTZ6TTI0IDQyYzMuMzEgMCA2IDIuNjkgNiA2cy0yLjY5IDYtNiA2LTYtMi42OS02LTYgMi42OS02IDYtNnoiIHN0cm9rZT0iIzk0YTNiOCIgc3Ryb2tlLXdpZHRoPSIuNSIgb3BhY2l0eT0iLjEiLz48L2c+PC9zdmc+')] opacity-40"></div>
       
       <div className="relative max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-6 sm:py-8 md:py-12">
@@ -645,8 +653,7 @@ export default function CreditCalculator() {
                                 type="number"
                                 value={module.credits}
                                 onChange={(e) => updateModule(semester.id, module.id, 'credits', e.target.value)}
-                                onWheel={handleNumberWheel}
-                                
+                                onWheel={(e) => e.currentTarget.blur()}
                                 className={`w-20 px-2 py-1.5 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500`}
                               />
                             </td>
@@ -655,7 +662,7 @@ export default function CreditCalculator() {
                                 type="number"
                                 value={module.mark}
                                 onChange={(e) => updateModule(semester.id, module.id, 'mark', e.target.value)}
-                                onWheel={handleNumberWheel}
+                                onWheel={(e) => e.currentTarget.blur()}
                                 placeholder="0-100"
                                 min="0"
                                 max="100"
@@ -701,8 +708,8 @@ export default function CreditCalculator() {
                                 type="number"
                                 value={module.credits}
                                 onChange={(e) => updateModule(semester.id, module.id, 'credits', e.target.value)}
-                                onWheel={handleNumberWheel}
                                 
+                                onWheel={(e) => e.currentTarget.blur()}
                                 className={`w-full px-2 py-1.5 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 text-black placeholder:text-slate-400`}
                               />
                             </div>
@@ -712,10 +719,10 @@ export default function CreditCalculator() {
                                 type="number"
                                 value={module.mark}
                                 onChange={(e) => updateModule(semester.id, module.id, 'mark', e.target.value)}
-                                onWheel={handleNumberWheel}
                                 placeholder="0-100"
                                 min="0"
                                 max="100"
+                                onWheel={(e) => e.currentTarget.blur()}
                                 className="w-full px-2 py-1.5 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 text-black placeholder:text-slate-400"
                               />
                             </div>
