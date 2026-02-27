@@ -60,6 +60,7 @@ export default function CreditCalculator() {
   const [semesters, setSemesters] = useState([]);
   const [showClearModal, setShowClearModal] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showClassGuide, setShowClassGuide] = useState(false);
   const [isBscMode, setIsBscMode] = useState(false);
   const [userId, setUserId] = useState(null);
   const [isOnline, setIsOnline] = useState(true);
@@ -525,13 +526,16 @@ export default function CreditCalculator() {
               {gradedCredits > 0 ? (
                 <>
                   <div className="text-xs text-slate-400 uppercase tracking-wider mb-1">Weighted Average</div>
-                  <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold mb-2 ${
-                    classification.color === 'text-green-600' ? 'bg-green-50 border border-green-200 text-green-700' :
-                    classification.color === 'text-blue-600' ? 'bg-blue-50 border border-blue-200 text-blue-700' :
-                    classification.color === 'text-yellow-600' ? 'bg-yellow-50 border border-yellow-200 text-yellow-700' :
-                    classification.color === 'text-gray-600' ? 'bg-gray-50 border border-gray-200 text-gray-700' :
-                    'bg-red-50 border border-red-200 text-red-700'
-                  }`}>
+                  <button
+                    onClick={() => setShowClassGuide(v => !v)}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold mb-2 ${
+                      classification.color === 'text-green-600' ? 'bg-green-50 border border-green-200 text-green-700' :
+                      classification.color === 'text-blue-600' ? 'bg-blue-50 border border-blue-200 text-blue-700' :
+                      classification.color === 'text-yellow-600' ? 'bg-yellow-50 border border-yellow-200 text-yellow-700' :
+                      classification.color === 'text-gray-600' ? 'bg-gray-50 border border-gray-200 text-gray-700' :
+                      'bg-red-50 border border-red-200 text-red-700'
+                    }`}
+                  >
                     <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${
                       classification.color === 'text-green-600' ? 'bg-green-500' :
                       classification.color === 'text-blue-600' ? 'bg-blue-500' :
@@ -539,8 +543,33 @@ export default function CreditCalculator() {
                       classification.color === 'text-gray-600' ? 'bg-gray-500' : 'bg-red-500'
                     }`}></div>
                     {classification.name}
-                  </div>
-                  <div className="text-xs text-slate-500">{gradedCredits} of {totalCredits} credits graded</div>
+                    <svg className={`w-3 h-3 ml-0.5 transition-transform duration-200 ${showClassGuide ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                  <div className="text-xs text-slate-500 mb-2">{gradedCredits} of {totalCredits} credits</div>
+                  {/* Expandable classification guide */}
+                  {showClassGuide && (
+                    <div className="mt-2 p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1.5">
+                      <div className="text-xs font-bold text-slate-600 mb-2">UK Honours Classifications</div>
+                      {[
+                        { color: 'bg-green-500', label: 'First Class', range: '70%+', active: weightedAverage >= 70 },
+                        { color: 'bg-blue-500', label: 'Upper Second', range: '60–69%', active: weightedAverage >= 60 && weightedAverage < 70 },
+                        { color: 'bg-yellow-500', label: 'Lower Second', range: '50–59%', active: weightedAverage >= 50 && weightedAverage < 60 },
+                        { color: 'bg-gray-400', label: 'Third Class', range: '40–49%', active: weightedAverage >= 40 && weightedAverage < 50 },
+                        { color: 'bg-red-500', label: 'Fail', range: '<40%', active: weightedAverage < 40 },
+                      ].map(({ color, label, range, active }) => (
+                        <div key={label} className={`flex items-center justify-between text-xs px-2 py-1 rounded-lg ${active ? 'bg-white border border-slate-300 font-semibold' : ''}`}>
+                          <div className="flex items-center gap-2">
+                            <div className={`w-2 h-2 rounded-full flex-shrink-0 ${color}`}></div>
+                            <span className="text-slate-700">{label}</span>
+                            {active && <span className="text-xs bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded-full font-semibold">You</span>}
+                          </div>
+                          <span className="text-slate-500">{range}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </>
               ) : (
                 <>
@@ -831,7 +860,7 @@ export default function CreditCalculator() {
                   </div>
                   <div className="text-slate-500 text-xs mt-4">
                     {gradedCredits > 0
-                      ? `${gradedCredits} of ${totalCredits} credits graded`
+                      ? `${gradedCredits} of ${totalCredits} credits`
                       : `${totalCredits} total credits`
                     }
                   </div>
