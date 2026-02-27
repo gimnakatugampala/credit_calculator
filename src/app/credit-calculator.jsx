@@ -560,7 +560,7 @@ export default function CreditCalculator() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
                     </svg>
                   </button>
-                  <div className="text-xs text-slate-500 mb-2">{gradedCredits} of {totalCredits} credits graded</div>
+                  <div className="text-xs text-slate-500 mb-2">{gradedCredits} of {totalCredits} credits</div>
                   {/* Expandable classification guide */}
                   {showClassGuide && (
                     <div className="mt-2 p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1.5">
@@ -876,7 +876,7 @@ export default function CreditCalculator() {
                   </div>
                   <div className="text-slate-500 text-xs mt-4">
                     {gradedCredits > 0
-                      ? `${gradedCredits} of ${totalCredits} credits graded`
+                      ? `${gradedCredits} of ${totalCredits} credits`
                       : `${totalCredits} total credits`
                     }
                   </div>
