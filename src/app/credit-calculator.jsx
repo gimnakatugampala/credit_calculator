@@ -902,7 +902,7 @@ export default function CreditCalculator() {
                               <h4 className="text-xs md:text-sm font-semibold text-slate-700">{semester.name}</h4>
                               <span className="text-base md:text-lg font-bold text-blue-600">{semesterAverage.toFixed(1)}%</span>
                             </div>
-                            <div className="text-xs text-slate-500">{semesterCredits} credits graded</div>
+                            <div className="text-xs text-slate-500">{semesterCredits} credits</div>
                           </div>
                         );
                       }
