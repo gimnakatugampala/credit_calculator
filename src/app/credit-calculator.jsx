@@ -488,6 +488,70 @@ export default function CreditCalculator() {
           </div>
         </div>
 
+        {/* Mobile Score Card - shown only on mobile, between user info and modules */}
+        <div className="lg:hidden bg-white/80 backdrop-blur-sm rounded-xl shadow-lg p-4 border border-slate-200/50 mb-4">
+          <div className="flex items-center gap-4">
+            {/* Circular Progress - compact for mobile */}
+            <div className="relative flex-shrink-0">
+              <svg className="w-24 h-24 transform -rotate-90" viewBox="0 0 160 160">
+                <circle cx="80" cy="80" r="70" fill="none" stroke="#e5e7eb" strokeWidth="14" />
+                {gradedCredits > 0 && (
+                  <circle
+                    cx="80" cy="80" r="70" fill="none"
+                    stroke={
+                      weightedAverage >= 70 ? '#16a34a' :
+                      weightedAverage >= 60 ? '#2563eb' :
+                      weightedAverage >= 50 ? '#ca8a04' :
+                      weightedAverage >= 40 ? '#6b7280' : '#dc2626'
+                    }
+                    strokeWidth="14" strokeLinecap="round"
+                    strokeDasharray={`${(weightedAverage / 100) * 440} 440`}
+                    className="transition-all duration-1000 ease-out"
+                  />
+                )}
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                {gradedCredits > 0 ? (
+                  <span className="text-lg font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent" style={{ fontFamily: 'Georgia, serif' }}>
+                    {weightedAverage.toFixed(1)}%
+                  </span>
+                ) : (
+                  <span className="text-xl font-bold text-slate-300">—</span>
+                )}
+              </div>
+            </div>
+            {/* Info */}
+            <div className="flex-1 min-w-0">
+              {gradedCredits > 0 ? (
+                <>
+                  <div className="text-xs text-slate-400 uppercase tracking-wider mb-1">Weighted Average</div>
+                  <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold mb-2 ${
+                    classification.color === 'text-green-600' ? 'bg-green-50 border border-green-200 text-green-700' :
+                    classification.color === 'text-blue-600' ? 'bg-blue-50 border border-blue-200 text-blue-700' :
+                    classification.color === 'text-yellow-600' ? 'bg-yellow-50 border border-yellow-200 text-yellow-700' :
+                    classification.color === 'text-gray-600' ? 'bg-gray-50 border border-gray-200 text-gray-700' :
+                    'bg-red-50 border border-red-200 text-red-700'
+                  }`}>
+                    <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${
+                      classification.color === 'text-green-600' ? 'bg-green-500' :
+                      classification.color === 'text-blue-600' ? 'bg-blue-500' :
+                      classification.color === 'text-yellow-600' ? 'bg-yellow-500' :
+                      classification.color === 'text-gray-600' ? 'bg-gray-500' : 'bg-red-500'
+                    }`}></div>
+                    {classification.name}
+                  </div>
+                  <div className="text-xs text-slate-500">{gradedCredits} of {totalCredits} credits graded</div>
+                </>
+              ) : (
+                <>
+                  <div className="text-sm font-semibold text-slate-600 mb-1">Enter marks to see your average</div>
+                  <div className="text-xs text-slate-400">{totalCredits} total credits</div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+
         {/* Main Content */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-8">
           {/* Calculator Section - Takes 2 columns */}
@@ -670,8 +734,8 @@ export default function CreditCalculator() {
 
             {/* Summary Sidebar */}
             <div className="lg:col-span-1 space-y-4 md:space-y-6">
-              {/* Main Score Card */}
-              <div className="bg-white/80 backdrop-blur-sm rounded-xl md:rounded-2xl shadow-lg p-4 md:p-6 border border-slate-200/50 lg:sticky lg:top-6">
+              {/* Main Score Card - hidden on mobile, shown in desktop sidebar */}
+              <div className="hidden lg:block bg-white/80 backdrop-blur-sm rounded-xl md:rounded-2xl shadow-lg p-4 md:p-6 border border-slate-200/50 lg:sticky lg:top-6">
                 {/* Student Info Display */}
                 {(userName || userBatch !== '251P') && (
                   <div className="mb-4 md:mb-6 pb-4 md:pb-6 border-b border-slate-200">
@@ -767,7 +831,7 @@ export default function CreditCalculator() {
                   </div>
                   <div className="text-slate-500 text-xs mt-4">
                     {gradedCredits > 0
-                      ? `${gradedCredits} of ${totalCredits} credits`
+                      ? `${gradedCredits} of ${totalCredits} credits graded`
                       : `${totalCredits} total credits`
                     }
                   </div>
@@ -793,7 +857,7 @@ export default function CreditCalculator() {
                               <h4 className="text-xs md:text-sm font-semibold text-slate-700">{semester.name}</h4>
                               <span className="text-base md:text-lg font-bold text-blue-600">{semesterAverage.toFixed(1)}%</span>
                             </div>
-                            <div className="text-xs text-slate-500">{semesterCredits} credits</div>
+                            <div className="text-xs text-slate-500">{semesterCredits} credits graded</div>
                           </div>
                         );
                       }
