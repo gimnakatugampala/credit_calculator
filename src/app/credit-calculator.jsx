@@ -70,6 +70,11 @@ export default function CreditCalculator() {
   const isSyncingRef = useRef(false);
   const onboardingPendingRef = useRef(false);
 
+  // Prevent scroll from changing number input values
+  const handleNumberWheel = (e) => {
+    e.target.blur();
+  };
+
   const getClassification = (percentage) => {
     if (percentage >= 70) return { name: 'First Class Honours', color: 'text-green-600' };
     if (percentage >= 60) return { name: 'Upper Second Class', color: 'text-blue-600' };
@@ -547,7 +552,7 @@ export default function CreditCalculator() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
                     </svg>
                   </button>
-                  <div className="text-xs text-slate-500 mb-2">{gradedCredits} of {totalCredits} credits</div>
+                  <div className="text-xs text-slate-500 mb-2">{gradedCredits} of {totalCredits} credits graded</div>
                   {/* Expandable classification guide */}
                   {showClassGuide && (
                     <div className="mt-2 p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1.5">
@@ -640,6 +645,7 @@ export default function CreditCalculator() {
                                 type="number"
                                 value={module.credits}
                                 onChange={(e) => updateModule(semester.id, module.id, 'credits', e.target.value)}
+                                onWheel={handleNumberWheel}
                                 
                                 className={`w-20 px-2 py-1.5 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500`}
                               />
@@ -649,6 +655,7 @@ export default function CreditCalculator() {
                                 type="number"
                                 value={module.mark}
                                 onChange={(e) => updateModule(semester.id, module.id, 'mark', e.target.value)}
+                                onWheel={handleNumberWheel}
                                 placeholder="0-100"
                                 min="0"
                                 max="100"
@@ -694,6 +701,7 @@ export default function CreditCalculator() {
                                 type="number"
                                 value={module.credits}
                                 onChange={(e) => updateModule(semester.id, module.id, 'credits', e.target.value)}
+                                onWheel={handleNumberWheel}
                                 
                                 className={`w-full px-2 py-1.5 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 text-black placeholder:text-slate-400`}
                               />
@@ -704,6 +712,7 @@ export default function CreditCalculator() {
                                 type="number"
                                 value={module.mark}
                                 onChange={(e) => updateModule(semester.id, module.id, 'mark', e.target.value)}
+                                onWheel={handleNumberWheel}
                                 placeholder="0-100"
                                 min="0"
                                 max="100"
@@ -860,7 +869,7 @@ export default function CreditCalculator() {
                   </div>
                   <div className="text-slate-500 text-xs mt-4">
                     {gradedCredits > 0
-                      ? `${gradedCredits} of ${totalCredits} credits`
+                      ? `${gradedCredits} of ${totalCredits} credits graded`
                       : `${totalCredits} total credits`
                     }
                   </div>
