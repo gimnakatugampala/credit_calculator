@@ -560,7 +560,7 @@ export default function CreditCalculator() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
                     </svg>
                   </button>
-                  <div className="text-xs text-slate-500 mb-2">{gradedCredits} of {totalCredits} credits</div>
+                  <div className="text-xs text-slate-500 mb-2">{gradedCredits} of {totalCredits} credits graded</div>
                   {/* Expandable classification guide */}
                   {showClassGuide && (
                     <div className="mt-2 p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1.5">
@@ -743,7 +743,6 @@ export default function CreditCalculator() {
                   </>
                 )}
 
-                  {!isBscMode && (
                   <button
                     onClick={() => addModule(semester.id)}
                     className="mt-3 w-full sm:w-auto px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg md:rounded-xl text-sm font-medium transition-all duration-200 hover:shadow-md flex items-center justify-center gap-2"
@@ -753,7 +752,6 @@ export default function CreditCalculator() {
                     </svg>
                     Add Module
                   </button>
-                  )}
                 </div>
               ))}
 
@@ -876,7 +874,7 @@ export default function CreditCalculator() {
                   </div>
                   <div className="text-slate-500 text-xs mt-4">
                     {gradedCredits > 0
-                      ? `${gradedCredits} of ${totalCredits} credits`
+                      ? `${gradedCredits} of ${totalCredits} credits graded`
                       : `${totalCredits} total credits`
                     }
                   </div>
@@ -902,7 +900,7 @@ export default function CreditCalculator() {
                               <h4 className="text-xs md:text-sm font-semibold text-slate-700">{semester.name}</h4>
                               <span className="text-base md:text-lg font-bold text-blue-600">{semesterAverage.toFixed(1)}%</span>
                             </div>
-                            <div className="text-xs text-slate-500">{semesterCredits} credits</div>
+                            <div className="text-xs text-slate-500">{semesterCredits} credits graded</div>
                           </div>
                         );
                       }
