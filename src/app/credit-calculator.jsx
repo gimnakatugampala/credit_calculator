@@ -1059,4 +1059,3 @@ export default function CreditCalculator() {
     </div>
   );
 }
-
