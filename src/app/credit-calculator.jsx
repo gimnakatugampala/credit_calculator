@@ -13,6 +13,7 @@ const supabase = supabaseUrl && supabaseAnonKey
 const STORAGE_KEY = 'ukCreditCalculator';
 const SYNC_QUEUE_KEY = 'ukCreditCalculatorSyncQueue';
 const ONBOARDING_KEY = 'ukCreditCalculatorOnboarded';
+const BACKUP_KEY = 'ukCreditCalculatorBackups';
 
 const BSC_COMPUTING_MODULES = [
   {
@@ -71,6 +72,7 @@ export default function CreditCalculator() {
   const syncQueueRef = useRef([]);
   const isSyncingRef = useRef(false);
   const onboardingPendingRef = useRef(true);
+  const backupDebounceRef = useRef(null);
 
   const getClassification = (percentage) => {
     if (percentage >= 70) return { name: 'First Class Honours', color: 'text-green-600' };
@@ -204,6 +206,36 @@ export default function CreditCalculator() {
     }
   };
 
+  // ── Backup: saves a snapshot to calculator_backups + localStorage fallback ──
+  const saveBackup = async (reason, dataSnapshot) => {
+    const record = {
+      user_id: userId,
+      user_name: dataSnapshot.userName || 'Unknown',
+      data: dataSnapshot,
+      backup_reason: reason,
+      created_at: new Date().toISOString(),
+    };
+
+    // Always persist to localStorage (keeps last 20 backups)
+    try {
+      const existing = JSON.parse(localStorage.getItem(BACKUP_KEY) || '[]');
+      existing.push(record);
+      if (existing.length > 20) existing.splice(0, existing.length - 20);
+      localStorage.setItem(BACKUP_KEY, JSON.stringify(existing));
+    } catch (e) {
+      console.error('Backup localStorage error:', e);
+    }
+
+    // Sync to Supabase if available
+    if (supabase && userId) {
+      try {
+        await supabase.from('calculator_backups').insert(record);
+      } catch (error) {
+        console.error('Backup Supabase error:', error);
+      }
+    }
+  };
+
   // ── Initial load: data first, onboarding only if nothing saved ──
   useEffect(() => {
     const id = getUserId();
@@ -327,6 +359,22 @@ export default function CreditCalculator() {
   };
 
   const updateModule = (semesterId, moduleId, field, value) => {
+    // Detect mark being cleared → schedule a debounced backup
+    if (field === 'mark') {
+      const semester = semesters.find(s => s.id === semesterId);
+      const mod = semester?.modules.find(m => m.id === moduleId);
+      const hadMark = mod && mod.mark !== '' && mod.mark !== null && mod.mark !== undefined;
+      const nowEmpty = value === '' || value === null || value === undefined;
+
+      if (hadMark && nowEmpty) {
+        if (backupDebounceRef.current) clearTimeout(backupDebounceRef.current);
+        backupDebounceRef.current = setTimeout(() => {
+          // Capture a snapshot at the moment the timeout fires
+          saveBackup('mark_deleted', { userName, userBatch, semesters });
+        }, 1500);
+      }
+    }
+
     setSemesters(semesters.map(sem => {
       if (sem.id === semesterId) {
         return {
@@ -364,8 +412,11 @@ export default function CreditCalculator() {
     } catch (e) {}
   };
 
-  // Restart: wipes everything and re-shows the onboarding modal
-  const handleRestart = () => {
+  // Restart: save backup first, then wipe everything and re-show onboarding
+  const handleRestart = async () => {
+    // Snapshot current data before any state is cleared
+    await saveBackup('restart', { userName, userBatch, semesters });
+
     try {
       localStorage.removeItem(STORAGE_KEY);
       localStorage.removeItem(ONBOARDING_KEY);
@@ -494,7 +545,7 @@ export default function CreditCalculator() {
           {isBscMode && (
             <div className="mt-3 inline-flex items-center gap-2 px-4 py-1.5 bg-blue-100 border border-blue-200 rounded-full">
               <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
-              <span className="text-xs font-semibold text-blue-700">BSc Computing — Modules</span>
+              <span className="text-xs font-semibold text-blue-700">BSc Computing — Modules Pre-loaded</span>
             </div>
           )}
         </div>
