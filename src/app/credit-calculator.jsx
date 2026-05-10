@@ -355,24 +355,21 @@ export default function CreditCalculator() {
   };
 
   const updateModule = (semesterId, moduleId, field, value) => {
-    // Backup immediately when a 2-digit mark loses any digit
+    // Every time a mark shrinks (any backspace/delete), save the value BEFORE the keystroke
     if (field === 'mark') {
       const semester = semesters.find(s => s.id === semesterId);
       const mod = semester?.modules.find(m => m.id === moduleId);
-      const oldDigits = String(mod?.mark ?? '').replace(/\D/g, '');
-      const newDigits = String(value ?? '').replace(/\D/g, '');
+      const oldVal = String(mod?.mark ?? '');
+      const newVal = String(value ?? '');
 
-      // Had 2+ digits, now has fewer — capture the full pre-edit snapshot right now
-      if (oldDigits.length >= 2 && newDigits.length < oldDigits.length) {
+      // Value is getting shorter — snapshot right now, before setSemesters runs
+      if (newVal.length < oldVal.length && oldVal.length > 0) {
         const preEditSnapshot = {
           userName,
           userBatch,
           semesters: JSON.parse(JSON.stringify(semesters)),
         };
-        if (backupDebounceRef.current) clearTimeout(backupDebounceRef.current);
-        backupDebounceRef.current = setTimeout(() => {
-          saveBackup('mark_deleted', preEditSnapshot);
-        }, 0);
+        saveBackup('mark_deleted', preEditSnapshot);
       }
     }
 
