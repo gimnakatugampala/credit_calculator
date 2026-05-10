@@ -204,33 +204,44 @@ export default function CreditCalculator() {
     }
   };
 
-  // Initial load
+  // ── Initial load: data first, onboarding only if nothing saved ──
   useEffect(() => {
     const id = getUserId();
     setUserId(id);
 
     try {
+      const saved = window.localStorage.getItem(STORAGE_KEY);
       const hasOnboarded = window.localStorage.getItem(ONBOARDING_KEY);
-      if (hasOnboarded !== 'true') {
-        setShowOnboarding(true);
-      } else {
+
+      if (saved) {
+        // Data exists → restore it, skip onboarding entirely
         onboardingPendingRef.current = false;
-        const saved = window.localStorage.getItem(STORAGE_KEY);
-        if (saved) {
-          const data = JSON.parse(saved);
-          setUserName(data.userName || '');
-          setUserBatch(data.userBatch || '251P');
-          setSemesters(data.semesters || []);
-          if (data.semesters && data.semesters.length > 0 && data.semesters[0].id === 'bsc-sem-1') {
-            setIsBscMode(true);
-          }
-        } else {
-          setSemesters([{
-            id: Date.now(),
-            name: 'Year 3 Semester 1',
-            modules: [{ id: Date.now() + 1, title: '', credits: '', mark: '' }]
-          }]);
+        const data = JSON.parse(saved);
+        setUserName(data.userName || '');
+        setUserBatch(data.userBatch || '251P');
+        setSemesters(data.semesters || []);
+        if (
+          data.semesters &&
+          data.semesters.length > 0 &&
+          data.semesters[0].id === 'bsc-sem-1'
+        ) {
+          setIsBscMode(true);
         }
+        // Ensure the onboarding flag is set so future refreshes stay consistent
+        if (hasOnboarded !== 'true') {
+          window.localStorage.setItem(ONBOARDING_KEY, 'true');
+        }
+      } else if (hasOnboarded === 'true') {
+        // Previously onboarded but data was cleared → show empty calculator
+        onboardingPendingRef.current = false;
+        setSemesters([{
+          id: Date.now(),
+          name: 'Year 3 Semester 1',
+          modules: [{ id: Date.now() + 1, title: '', credits: '', mark: '' }]
+        }]);
+      } else {
+        // Brand-new visitor with no data → show onboarding
+        setShowOnboarding(true);
       }
     } catch (error) {
       setShowOnboarding(true);
@@ -355,7 +366,6 @@ export default function CreditCalculator() {
 
   // Restart: wipes everything and re-shows the onboarding modal
   const handleRestart = () => {
-    // Clear all stored data
     try {
       localStorage.removeItem(STORAGE_KEY);
       localStorage.removeItem(ONBOARDING_KEY);
@@ -364,7 +374,6 @@ export default function CreditCalculator() {
 
     if (userId) deleteFromSupabase();
 
-    // Reset all state
     setUserName('');
     setUserBatch('251P');
     setSemesters([]);
@@ -431,10 +440,10 @@ export default function CreditCalculator() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
 
-      {/* ── FIXED RESTART BUTTON — always visible top-right corner ── */}
+      {/* ── FIXED RESTART BUTTON ── */}
       <button
         onClick={() => setShowRestartModal(true)}
-        className="fixed top-4 right-4 z-40 inline-flex items-center gap-2 px-4 py-2.5 bg-orange-500 hover:bg-orange-600 active:bg-orange-700 text-white rounded-xl text-sm font-bold shadow-xl hover:shadow-2xl transition-all duration-200"
+        className="fixed top-4 right-4 z-40 inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white rounded-xl text-sm font-bold shadow-xl hover:shadow-2xl transition-all duration-200"
       >
         <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5}
@@ -915,9 +924,7 @@ export default function CreditCalculator() {
         </div>
       </div>
 
-      {/* ══════════════════════════════════════════
-          ONBOARDING MODAL
-      ══════════════════════════════════════════ */}
+      {/* ══ ONBOARDING MODAL ══ */}
       {showOnboarding && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
@@ -975,15 +982,13 @@ export default function CreditCalculator() {
         </div>
       )}
 
-      {/* ══════════════════════════════════════════
-          RESTART CONFIRMATION MODAL
-      ══════════════════════════════════════════ */}
+      {/* ══ RESTART CONFIRMATION MODAL ══ */}
       {showRestartModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl md:rounded-2xl shadow-2xl max-w-md w-full p-5 md:p-6">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-orange-100 flex items-center justify-center flex-shrink-0">
-                <svg className="w-5 h-5 md:w-6 md:h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                <svg className="w-5 h-5 md:w-6 md:h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                     d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
@@ -1007,7 +1012,7 @@ export default function CreditCalculator() {
               </button>
               <button
                 onClick={handleRestart}
-                className="flex-1 px-4 py-2.5 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white rounded-lg md:rounded-xl font-semibold transition-all duration-200 shadow-lg flex items-center justify-center gap-2 text-sm md:text-base"
+                className="flex-1 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg md:rounded-xl font-semibold transition-all duration-200 shadow-lg flex items-center justify-center gap-2 text-sm md:text-base"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -1020,9 +1025,7 @@ export default function CreditCalculator() {
         </div>
       )}
 
-      {/* ══════════════════════════════════════════
-          CLEAR ALL CONFIRMATION MODAL
-      ══════════════════════════════════════════ */}
+      {/* ══ CLEAR ALL CONFIRMATION MODAL ══ */}
       {showClearModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl md:rounded-2xl shadow-2xl max-w-md w-full p-5 md:p-6">
