@@ -246,7 +246,6 @@ export default function CreditCalculator() {
       const hasOnboarded = window.localStorage.getItem(ONBOARDING_KEY);
 
       if (saved) {
-        // Data exists → restore it, skip onboarding entirely
         onboardingPendingRef.current = false;
         const data = JSON.parse(saved);
         setUserName(data.userName || '');
@@ -259,12 +258,10 @@ export default function CreditCalculator() {
         ) {
           setIsBscMode(true);
         }
-        // Ensure the onboarding flag is set so future refreshes stay consistent
         if (hasOnboarded !== 'true') {
           window.localStorage.setItem(ONBOARDING_KEY, 'true');
         }
       } else if (hasOnboarded === 'true') {
-        // Previously onboarded but data was cleared → show empty calculator
         onboardingPendingRef.current = false;
         setSemesters([{
           id: Date.now(),
@@ -272,7 +269,6 @@ export default function CreditCalculator() {
           modules: [{ id: Date.now() + 1, title: '', credits: '', mark: '' }]
         }]);
       } else {
-        // Brand-new visitor with no data → show onboarding
         setShowOnboarding(true);
       }
     } catch (error) {
@@ -359,7 +355,7 @@ export default function CreditCalculator() {
   };
 
   const updateModule = (semesterId, moduleId, field, value) => {
-    // Detect mark being cleared → schedule a debounced backup
+    // Detect mark being cleared → save backup with PRE-DELETE snapshot
     if (field === 'mark') {
       const semester = semesters.find(s => s.id === semesterId);
       const mod = semester?.modules.find(m => m.id === moduleId);
@@ -367,10 +363,15 @@ export default function CreditCalculator() {
       const nowEmpty = value === '' || value === null || value === undefined;
 
       if (hadMark && nowEmpty) {
+        // Deep-clone the CURRENT semesters state RIGHT NOW, before setSemesters runs
+        const preDeleteSnapshot = {
+          userName,
+          userBatch,
+          semesters: JSON.parse(JSON.stringify(semesters)),
+        };
         if (backupDebounceRef.current) clearTimeout(backupDebounceRef.current);
         backupDebounceRef.current = setTimeout(() => {
-          // Capture a snapshot at the moment the timeout fires
-          saveBackup('mark_deleted', { userName, userBatch, semesters });
+          saveBackup('mark_deleted', preDeleteSnapshot);
         }, 1500);
       }
     }
@@ -414,7 +415,6 @@ export default function CreditCalculator() {
 
   // Restart: save backup first, then wipe everything and re-show onboarding
   const handleRestart = async () => {
-    // Snapshot current data before any state is cleared
     await saveBackup('restart', { userName, userBatch, semesters });
 
     try {
