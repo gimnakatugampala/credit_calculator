@@ -355,24 +355,24 @@ export default function CreditCalculator() {
   };
 
   const updateModule = (semesterId, moduleId, field, value) => {
-    // Detect mark being cleared → save backup with PRE-DELETE snapshot
+    // Backup immediately when a 2-digit mark loses any digit
     if (field === 'mark') {
       const semester = semesters.find(s => s.id === semesterId);
       const mod = semester?.modules.find(m => m.id === moduleId);
-      const hadMark = mod && mod.mark !== '' && mod.mark !== null && mod.mark !== undefined;
-      const nowEmpty = value === '' || value === null || value === undefined;
+      const oldDigits = String(mod?.mark ?? '').replace(/\D/g, '');
+      const newDigits = String(value ?? '').replace(/\D/g, '');
 
-      if (hadMark && nowEmpty) {
-        // Deep-clone the CURRENT semesters state RIGHT NOW, before setSemesters runs
-        const preDeleteSnapshot = {
+      // Had 2+ digits, now has fewer — capture the full pre-edit snapshot right now
+      if (oldDigits.length >= 2 && newDigits.length < oldDigits.length) {
+        const preEditSnapshot = {
           userName,
           userBatch,
           semesters: JSON.parse(JSON.stringify(semesters)),
         };
         if (backupDebounceRef.current) clearTimeout(backupDebounceRef.current);
         backupDebounceRef.current = setTimeout(() => {
-          saveBackup('mark_deleted', preDeleteSnapshot);
-        }, 1500);
+          saveBackup('mark_deleted', preEditSnapshot);
+        }, 0);
       }
     }
 
