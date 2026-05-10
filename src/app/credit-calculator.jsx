@@ -68,7 +68,7 @@ export default function CreditCalculator() {
   
   const syncQueueRef = useRef([]);
   const isSyncingRef = useRef(false);
-  const onboardingPendingRef = useRef(false);
+  const onboardingPendingRef = useRef(true);
 
   const getClassification = (percentage) => {
     if (percentage >= 70) return { name: 'First Class Honours', color: 'text-green-600' };
@@ -230,38 +230,63 @@ export default function CreditCalculator() {
     }
   };
 
+  // ==========================================
+  // 1. BULLETPROOF INITIAL LOAD LOGIC
+  // ==========================================
   useEffect(() => {
     const id = getUserId();
     setUserId(id);
 
     try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        const data = JSON.parse(saved);
-        setUserName(data.userName || '');
-        setUserBatch(data.userBatch || '251P');
-        setSemesters(data.semesters || []);
-      } else {
-        // First time visitor - show onboarding
-        // Do NOT pre-set semesters here; wait until user answers so we don't accidentally save to localStorage
-        onboardingPendingRef.current = true;
+      const hasOnboarded = window.localStorage.getItem(ONBOARDING_KEY);
+      
+      // RUTHLESS CHECK: If the 'true' string isn't in memory, force the popup!
+      if (hasOnboarded !== 'true') {
         setShowOnboarding(true);
+      } else {
+        // Only attempt to load data if they are fully onboarded
+        const saved = window.localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          const data = JSON.parse(saved);
+          setUserName(data.userName || '');
+          setUserBatch(data.userBatch || '251P');
+          setSemesters(data.semesters || []);
+          if (data.semesters && data.semesters.length > 0 && data.semesters[0].id === 'bsc-sem-1') {
+            setIsBscMode(true);
+          }
+        } else {
+          setSemesters([{
+            id: Date.now(),
+            name: 'Year 3 Semester 1',
+            modules: [{ id: Date.now() + 1, title: '', credits: '', mark: '' }]
+          }]);
+        }
       }
     } catch (error) {
-      console.error('Error loading from localStorage:', error);
-      setSemesters([{
-        id: Date.now(),
-        name: 'Year 3 Semester 1',
-        modules: [{ id: Date.now() + 1, title: '', credits: '', mark: '' }]
-      }]);
+      // If mobile/in-app browser blocks storage, show popup safely
+      setShowOnboarding(true);
+    } finally {
+      // THIS IS CRITICAL: Tell the app we are done checking storage!
+      setIsCheckingUser(false);
     }
 
     syncQueueRef.current = loadSyncQueue();
-
     if (supabase) {
       processSyncQueue();
     }
   }, []);
+
+  // ==========================================
+  // 2. BULLETPROOF AUTO-SAVE LOGIC
+  // ==========================================
+  useEffect(() => {
+    // If checking user, modal is visible, OR no semesters exist, ABORT SAVE.
+    if (isCheckingUser || showOnboarding || semesters.length === 0) return;
+    
+    const data = { userName, userBatch, semesters };
+    saveToLocalStorage(data);
+    if (userId) saveToSupabase(data);
+  }, [userName, userBatch, semesters, userId, showOnboarding, isCheckingUser]);
 
   useEffect(() => {
     const handleOnline = () => {
@@ -437,6 +462,14 @@ export default function CreditCalculator() {
     sum + sem.modules.reduce((s, m) => s + (hasValidMark(m) ? (parseInt(m.credits) || 0) : 0), 0), 0
   );
 
+  // If we are still checking local storage, show a blank loading state
+  if (isCheckingUser) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       <style>{`
