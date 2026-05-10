@@ -494,7 +494,7 @@ export default function CreditCalculator() {
           {isBscMode && (
             <div className="mt-3 inline-flex items-center gap-2 px-4 py-1.5 bg-blue-100 border border-blue-200 rounded-full">
               <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
-              <span className="text-xs font-semibold text-blue-700">BSc Computing — Modules Pre-loaded</span>
+              <span className="text-xs font-semibold text-blue-700">BSc Computing — Modules</span>
             </div>
           )}
         </div>
