@@ -14,6 +14,7 @@ const STORAGE_KEY = 'ukCreditCalculator';
 const SYNC_QUEUE_KEY = 'ukCreditCalculatorSyncQueue';
 const ONBOARDING_KEY = 'ukCreditCalculatorOnboarded';
 const BACKUP_KEY = 'ukCreditCalculatorBackups';
+const THEME_KEY = 'ukCreditCalculatorTheme';
 
 const BSC_COMPUTING_MODULES = [
   {
@@ -68,11 +69,27 @@ export default function CreditCalculator() {
   const [isOnline, setIsOnline] = useState(true);
   const [syncStatus, setSyncStatus] = useState('synced');
   const [isCheckingUser, setIsCheckingUser] = useState(true);
+  // ── Dark mode state ──
+  const [isDark, setIsDark] = useState(false);
   
   const syncQueueRef = useRef([]);
   const isSyncingRef = useRef(false);
   const onboardingPendingRef = useRef(true);
   const backupDebounceRef = useRef(null);
+
+  // ── Apply / remove dark class on <html> whenever isDark changes ──
+  useEffect(() => {
+    if (isDark) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+    try {
+      localStorage.setItem(THEME_KEY, isDark ? 'dark' : 'light');
+    } catch (e) {}
+  }, [isDark]);
+
+  const toggleDark = () => setIsDark(v => !v);
 
   const getClassification = (percentage) => {
     if (percentage >= 70) return { name: 'First Class Honours', color: 'text-green-600' };
@@ -240,6 +257,15 @@ export default function CreditCalculator() {
   useEffect(() => {
     const id = getUserId();
     setUserId(id);
+
+    // ── Restore saved theme ──
+    try {
+      const savedTheme = localStorage.getItem(THEME_KEY);
+      if (savedTheme === 'dark') {
+        setIsDark(true);
+        document.documentElement.classList.add('dark');
+      }
+    } catch (e) {}
 
     try {
       const saved = window.localStorage.getItem(STORAGE_KEY);
@@ -479,26 +505,51 @@ export default function CreditCalculator() {
 
   if (isCheckingUser) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex items-center justify-center">
         <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
 
-      {/* ── FIXED RESTART BUTTON ── */}
-      <button
-        onClick={() => setShowRestartModal(true)}
-        className="fixed top-4 right-4 z-40 inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white rounded-xl text-sm font-bold shadow-xl hover:shadow-2xl transition-all duration-200"
-      >
-        <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5}
-            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-        </svg>
-        Restart
-      </button>
+      {/* ── FIXED ACTION BUTTONS (Restart + Dark Toggle) ── */}
+      <div className="fixed top-4 right-4 z-40 flex items-center gap-2">
+        {/* Dark / Light toggle */}
+        <button
+          onClick={toggleDark}
+          aria-label="Toggle dark mode"
+          className="inline-flex items-center justify-center w-10 h-10 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-200 rounded-xl shadow-xl hover:shadow-2xl transition-all duration-200 hover:bg-slate-100 dark:hover:bg-slate-600"
+        >
+          {isDark ? (
+            /* Sun icon */
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707M17.657 17.657l-.707-.707M6.343 6.343l-.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z" />
+            </svg>
+          ) : (
+            /* Moon icon */
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+            </svg>
+          )}
+        </button>
+
+        {/* Restart button */}
+        <button
+          onClick={() => setShowRestartModal(true)}
+          className="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white rounded-xl text-sm font-bold shadow-xl hover:shadow-2xl transition-all duration-200"
+        >
+          <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5}
+              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          Restart
+        </button>
+      </div>
+
       <style>{`
         input[type=number]::-webkit-inner-spin-button,
         input[type=number]::-webkit-outer-spin-button { 
@@ -511,10 +562,18 @@ export default function CreditCalculator() {
           -webkit-text-fill-color: #1e293b !important;
           opacity: 1 !important;
         }
+        .dark input, .dark textarea, .dark select {
+          color: #e2e8f0 !important;
+          -webkit-text-fill-color: #e2e8f0 !important;
+        }
         input::placeholder {
           color: #94a3b8 !important;
           -webkit-text-fill-color: #94a3b8 !important;
           opacity: 1 !important;
+        }
+        .dark input::placeholder {
+          color: #64748b !important;
+          -webkit-text-fill-color: #64748b !important;
         }
         input:-webkit-autofill,
         input:-webkit-autofill:hover,
@@ -522,63 +581,69 @@ export default function CreditCalculator() {
           -webkit-text-fill-color: #1e293b !important;
           box-shadow: 0 0 0px 1000px white inset !important;
         }
+        .dark input:-webkit-autofill,
+        .dark input:-webkit-autofill:hover,
+        .dark input:-webkit-autofill:focus {
+          -webkit-text-fill-color: #e2e8f0 !important;
+          box-shadow: 0 0 0px 1000px #1e293b inset !important;
+        }
       `}</style>
 
-      <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGQ9Ik0zNiAxOGMzLjMxIDAgNiAyLjY5IDYgNnMtMi42OSA2LTYgNi02LTIuNjktNi02IDIuNjktNiA2LTZ6TTI0IDQyYzMuMzEgMCA2IDIuNjkgNiA2cy0yLjY5IDYtNiA2LTYtMi42OS02LTYgMi42OS02IDYtNnoiIHN0cm9rZT0iIzk0YTNiOCIgc3Ryb2tlLXdpZHRoPSIuNSIgb3BhY2l0eT0iLjEiLz48L2c+PC9zdmc+')] opacity-40"></div>
+      <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGQ9Ik0zNiAxOGMzLjMxIDAgNiAyLjY5IDYgNnMtMi42OSA2LTYgNi02LTIuNjktNi02IDIuNjktNiA2LTZ6TTI0IDQyYzMuMzEgMCA2IDIuNjkgNiA2cy0yLjY5IDYtNiA2LTYtMi42OS02LTYgMi42OS02IDYtNnoiIHN0cm9rZT0iIzk0YTNiOCIgc3Ryb2tlLXdpZHRoPSIuNSIgb3BhY2l0eT0iLjEiLz48L2c+PC9zdmc+')] opacity-40 dark:opacity-10"></div>
 
       <div className="relative max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-6 sm:py-8 md:py-12">
 
         {/* ── Header ── */}
         <div className="mb-6 md:mb-8 text-center">
           <h1
-            className="text-3xl sm:text-4xl md:text-5xl font-bold bg-gradient-to-r from-slate-800 via-blue-900 to-indigo-900 bg-clip-text text-transparent mb-2"
+            className="text-3xl sm:text-4xl md:text-5xl font-bold bg-gradient-to-r from-slate-800 via-blue-900 to-indigo-900 dark:from-slate-100 dark:via-blue-300 dark:to-indigo-300 bg-clip-text text-transparent mb-2"
             style={{ fontFamily: 'Georgia, serif' }}
           >
             NIBM - Coventry Credit Calculator
           </h1>
-          <p className="text-slate-600 text-sm md:text-base font-light px-4">
+          <p className="text-slate-600 dark:text-slate-400 text-sm md:text-base font-light px-4">
             Track your weighted credits and degree classification
           </p>
           {isBscMode && (
-            <div className="mt-3 inline-flex items-center gap-2 px-4 py-1.5 bg-blue-100 border border-blue-200 rounded-full">
+            <div className="mt-3 inline-flex items-center gap-2 px-4 py-1.5 bg-blue-100 dark:bg-blue-900/40 border border-blue-200 dark:border-blue-700 rounded-full">
               <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
-              <span className="text-xs font-semibold text-blue-700">BSc Computing — Modules Pre-loaded</span>
+              <span className="text-xs font-semibold text-blue-700 dark:text-blue-300">BSc Computing — Modules Pre-loaded</span>
             </div>
           )}
         </div>
 
         {/* ── User Info ── */}
-        <div className="bg-white/80 backdrop-blur-sm rounded-xl md:rounded-2xl shadow-lg p-4 md:p-6 border border-slate-200/50 mb-4 md:mb-6">
+        <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl md:rounded-2xl shadow-lg p-4 md:p-6 border border-slate-200/50 dark:border-slate-700/50 mb-4 md:mb-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
             <div>
-              <label className="block text-xs md:text-sm font-semibold text-slate-700 mb-1 md:mb-2">Student Name</label>
+              <label className="block text-xs md:text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1 md:mb-2">Student Name</label>
               <input
                 type="text"
                 value={userName}
                 onChange={(e) => setUserName(e.target.value)}
                 placeholder="Enter your name"
-                className="w-full px-3 md:px-4 py-2 md:py-2.5 rounded-lg md:rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 text-sm md:text-base text-slate-800 bg-white"
+                className="w-full px-3 md:px-4 py-2 md:py-2.5 rounded-lg md:rounded-xl border border-slate-300 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 text-sm md:text-base text-slate-800 dark:text-slate-100 bg-white dark:bg-slate-700"
               />
             </div>
             <div>
-              <label className="block text-xs md:text-sm font-semibold text-slate-700 mb-1 md:mb-2">Batch</label>
+              <label className="block text-xs md:text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1 md:mb-2">Batch</label>
               <input
                 type="text"
                 value={userBatch}
                 onChange={(e) => setUserBatch(e.target.value)}
                 placeholder="e.g., 251P"
-                className="w-full px-3 md:px-4 py-2 md:py-2.5 rounded-lg md:rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 text-sm md:text-base text-slate-800 bg-white"
+                className="w-full px-3 md:px-4 py-2 md:py-2.5 rounded-lg md:rounded-xl border border-slate-300 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 text-sm md:text-base text-slate-800 dark:text-slate-100 bg-white dark:bg-slate-700"
               />
             </div>
           </div>
         </div>
 
         {/* ── Mobile Score Card ── */}
-        <div className="lg:hidden bg-white/80 backdrop-blur-sm rounded-xl shadow-lg p-4 border border-slate-200/50 mb-4">
+        <div className="lg:hidden bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl shadow-lg p-4 border border-slate-200/50 dark:border-slate-700/50 mb-4">
           <div className="flex items-center gap-4">
             <div className="relative flex-shrink-0">
               <svg className="w-24 h-24 transform -rotate-90" viewBox="0 0 160 160">
-                <circle cx="80" cy="80" r="70" fill="none" stroke="#e5e7eb" strokeWidth="14" />
+                <circle cx="80" cy="80" r="70" fill="none" stroke={isDark ? '#334155' : '#e5e7eb'} strokeWidth="14" />
                 {gradedCredits > 0 && (
                   <circle
                     cx="80" cy="80" r="70" fill="none"
@@ -600,7 +665,7 @@ export default function CreditCalculator() {
                     {weightedAverage.toFixed(1)}%
                   </span>
                 ) : (
-                  <span className="text-xl font-bold text-slate-300">—</span>
+                  <span className="text-xl font-bold text-slate-300 dark:text-slate-600">—</span>
                 )}
               </div>
             </div>
@@ -608,15 +673,15 @@ export default function CreditCalculator() {
             <div className="flex-1 min-w-0">
               {gradedCredits > 0 ? (
                 <>
-                  <div className="text-xs text-slate-400 uppercase tracking-wider mb-1">Weighted Average</div>
+                  <div className="text-xs text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">Weighted Average</div>
                   <button
                     onClick={() => setShowClassGuide(v => !v)}
                     className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold mb-2 ${
-                      classification.color === 'text-green-600' ? 'bg-green-50 border border-green-200 text-green-700' :
-                      classification.color === 'text-blue-600' ? 'bg-blue-50 border border-blue-200 text-blue-700' :
-                      classification.color === 'text-yellow-600' ? 'bg-yellow-50 border border-yellow-200 text-yellow-700' :
-                      classification.color === 'text-gray-600' ? 'bg-gray-50 border border-gray-200 text-gray-700' :
-                      'bg-red-50 border border-red-200 text-red-700'
+                      classification.color === 'text-green-600' ? 'bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 text-green-700 dark:text-green-400' :
+                      classification.color === 'text-blue-600' ? 'bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 text-blue-700 dark:text-blue-400' :
+                      classification.color === 'text-yellow-600' ? 'bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-700 text-yellow-700 dark:text-yellow-400' :
+                      classification.color === 'text-gray-600' ? 'bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-400' :
+                      'bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 text-red-700 dark:text-red-400'
                     }`}
                   >
                     <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${
@@ -630,10 +695,10 @@ export default function CreditCalculator() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
                     </svg>
                   </button>
-                  <div className="text-xs text-slate-500 mb-2">{gradedCredits} of {totalCredits} credits graded</div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400 mb-2">{gradedCredits} of {totalCredits} credits graded</div>
                   {showClassGuide && (
-                    <div className="mt-2 p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1.5">
-                      <div className="text-xs font-bold text-slate-600 mb-2">UK Honours Classifications</div>
+                    <div className="mt-2 p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl border border-slate-200 dark:border-slate-600 space-y-1.5">
+                      <div className="text-xs font-bold text-slate-600 dark:text-slate-300 mb-2">UK Honours Classifications</div>
                       {[
                         { color: 'bg-green-500', label: 'First Class', range: '70%+', active: weightedAverage >= 70 },
                         { color: 'bg-blue-500', label: 'Upper Second', range: '60–69%', active: weightedAverage >= 60 && weightedAverage < 70 },
@@ -641,13 +706,13 @@ export default function CreditCalculator() {
                         { color: 'bg-gray-400', label: 'Third Class', range: '40–49%', active: weightedAverage >= 40 && weightedAverage < 50 },
                         { color: 'bg-red-500', label: 'Fail', range: '<40%', active: weightedAverage < 40 },
                       ].map(({ color, label, range, active }) => (
-                        <div key={label} className={`flex items-center justify-between text-xs px-2 py-1 rounded-lg ${active ? 'bg-white border border-slate-300 font-semibold' : ''}`}>
+                        <div key={label} className={`flex items-center justify-between text-xs px-2 py-1 rounded-lg ${active ? 'bg-white dark:bg-slate-600 border border-slate-300 dark:border-slate-500 font-semibold' : ''}`}>
                           <div className="flex items-center gap-2">
                             <div className={`w-2 h-2 rounded-full flex-shrink-0 ${color}`}></div>
-                            <span className="text-slate-700">{label}</span>
-                            {active && <span className="text-xs bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded-full font-semibold">You</span>}
+                            <span className="text-slate-700 dark:text-slate-200">{label}</span>
+                            {active && <span className="text-xs bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded-full font-semibold">You</span>}
                           </div>
-                          <span className="text-slate-500">{range}</span>
+                          <span className="text-slate-500 dark:text-slate-400">{range}</span>
                         </div>
                       ))}
                     </div>
@@ -655,8 +720,8 @@ export default function CreditCalculator() {
                 </>
               ) : (
                 <>
-                  <div className="text-sm font-semibold text-slate-600 mb-1">Enter marks to see your average</div>
-                  <div className="text-xs text-slate-400">{totalCredits} total credits</div>
+                  <div className="text-sm font-semibold text-slate-600 dark:text-slate-400 mb-1">Enter marks to see your average</div>
+                  <div className="text-xs text-slate-400 dark:text-slate-500">{totalCredits} total credits</div>
                 </>
               )}
             </div>
@@ -669,18 +734,18 @@ export default function CreditCalculator() {
           {/* Calculator Column */}
           <div className="lg:col-span-2 space-y-4 md:space-y-6">
             {semesters.map((semester) => (
-              <div key={semester.id} className="bg-white/80 backdrop-blur-sm rounded-xl md:rounded-2xl shadow-lg p-4 md:p-6 border border-slate-200/50 hover:shadow-xl transition-shadow duration-300">
+              <div key={semester.id} className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl md:rounded-2xl shadow-lg p-4 md:p-6 border border-slate-200/50 dark:border-slate-700/50 hover:shadow-xl transition-shadow duration-300">
                 <div className="flex items-center justify-between mb-3 md:mb-4">
                   <input
                     type="text"
                     value={semester.name}
                     onChange={(e) => updateSemesterName(semester.id, e.target.value)}
-                    className="text-lg md:text-xl font-bold text-slate-800 bg-transparent border-none focus:outline-none focus:ring-2 focus:ring-blue-500/20 rounded-lg px-2 py-1 flex-1 mr-2"
+                    className="text-lg md:text-xl font-bold text-slate-800 dark:text-slate-100 bg-transparent border-none focus:outline-none focus:ring-2 focus:ring-blue-500/20 rounded-lg px-2 py-1 flex-1 mr-2"
                     style={{ fontFamily: 'Georgia, serif' }}
                   />
                   <button
                     onClick={() => deleteSemester(semester.id)}
-                    className="text-red-500 hover:text-red-700 hover:bg-red-50 p-1.5 md:p-2 rounded-lg transition-colors flex-shrink-0"
+                    className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/30 p-1.5 md:p-2 rounded-lg transition-colors flex-shrink-0"
                     title="Delete semester"
                   >
                     <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -690,30 +755,30 @@ export default function CreditCalculator() {
                 </div>
 
                 {semester.modules.length === 0 ? (
-                  <p className="text-slate-400 text-sm italic py-4 text-center">No modules added yet</p>
+                  <p className="text-slate-400 dark:text-slate-500 text-sm italic py-4 text-center">No modules added yet</p>
                 ) : (
                   <>
                     {/* Desktop table */}
                     <div className="hidden sm:block overflow-x-auto">
                       <table className="w-full">
                         <thead>
-                          <tr className="border-b border-slate-200">
-                            <th className="text-left py-2 px-3 text-xs font-semibold text-slate-600">Title</th>
-                            <th className="text-left py-2 px-3 text-xs font-semibold text-slate-600">Credits</th>
-                            <th className="text-left py-2 px-3 text-xs font-semibold text-slate-600">Mark (%)</th>
+                          <tr className="border-b border-slate-200 dark:border-slate-700">
+                            <th className="text-left py-2 px-3 text-xs font-semibold text-slate-600 dark:text-slate-400">Title</th>
+                            <th className="text-left py-2 px-3 text-xs font-semibold text-slate-600 dark:text-slate-400">Credits</th>
+                            <th className="text-left py-2 px-3 text-xs font-semibold text-slate-600 dark:text-slate-400">Mark (%)</th>
                             <th className="w-12"></th>
                           </tr>
                         </thead>
                         <tbody>
                           {semester.modules.map((module) => (
-                            <tr key={module.id} className="border-b border-slate-100 hover:bg-blue-50/30 transition-colors">
+                            <tr key={module.id} className="border-b border-slate-100 dark:border-slate-700/50 hover:bg-blue-50/30 dark:hover:bg-blue-900/10 transition-colors">
                               <td className="py-2 px-3">
                                 <input
                                   type="text"
                                   value={module.title}
                                   onChange={(e) => updateModule(semester.id, module.id, 'title', e.target.value)}
                                   placeholder="Module Title"
-                                  className="w-full px-2 py-1.5 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500"
+                                  className="w-full px-2 py-1.5 text-sm rounded-lg border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 bg-white dark:bg-slate-700"
                                 />
                               </td>
                               <td className="py-2 px-3">
@@ -722,7 +787,7 @@ export default function CreditCalculator() {
                                   value={module.credits}
                                   onChange={(e) => updateModule(semester.id, module.id, 'credits', e.target.value)}
                                   onWheel={(e) => e.currentTarget.blur()}
-                                  className="w-20 px-2 py-1.5 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500"
+                                  className="w-20 px-2 py-1.5 text-sm rounded-lg border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 bg-white dark:bg-slate-700"
                                 />
                               </td>
                               <td className="py-2 px-3">
@@ -734,13 +799,13 @@ export default function CreditCalculator() {
                                   placeholder="0-100"
                                   min="0"
                                   max="100"
-                                  className="w-20 px-2 py-1.5 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500"
+                                  className="w-20 px-2 py-1.5 text-sm rounded-lg border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 bg-white dark:bg-slate-700"
                                 />
                               </td>
                               <td className="py-2 px-3">
                                 <button
                                   onClick={() => deleteModule(semester.id, module.id)}
-                                  className="text-red-400 hover:text-red-600 hover:bg-red-50 p-1.5 rounded-lg transition-colors"
+                                  className="text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 p-1.5 rounded-lg transition-colors"
                                 >
                                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -756,31 +821,31 @@ export default function CreditCalculator() {
                     {/* Mobile cards */}
                     <div className="sm:hidden space-y-3">
                       {semester.modules.map((module) => (
-                        <div key={module.id} className="bg-slate-50 rounded-lg p-3 border border-slate-200">
+                        <div key={module.id} className="bg-slate-50 dark:bg-slate-700/50 rounded-lg p-3 border border-slate-200 dark:border-slate-600">
                           <div className="space-y-2">
                             <div>
-                              <label className="block text-xs font-semibold text-slate-600 mb-1">Title</label>
+                              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Title</label>
                               <input
                                 type="text"
                                 value={module.title}
                                 onChange={(e) => updateModule(semester.id, module.id, 'title', e.target.value)}
                                 placeholder="Module Title"
-                                className="w-full px-2 py-1.5 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 text-black placeholder:text-slate-400"
+                                className="w-full px-2 py-1.5 text-sm rounded-lg border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 bg-white dark:bg-slate-700"
                               />
                             </div>
                             <div className="grid grid-cols-2 gap-2">
                               <div>
-                                <label className="block text-xs font-semibold text-slate-600 mb-1">Credits</label>
+                                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Credits</label>
                                 <input
                                   type="number"
                                   value={module.credits}
                                   onChange={(e) => updateModule(semester.id, module.id, 'credits', e.target.value)}
                                   onWheel={(e) => e.currentTarget.blur()}
-                                  className="w-full px-2 py-1.5 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 text-black placeholder:text-slate-400"
+                                  className="w-full px-2 py-1.5 text-sm rounded-lg border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 bg-white dark:bg-slate-700"
                                 />
                               </div>
                               <div>
-                                <label className="block text-xs font-semibold text-slate-600 mb-1">Mark (%)</label>
+                                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">Mark (%)</label>
                                 <input
                                   type="number"
                                   value={module.mark}
@@ -789,13 +854,13 @@ export default function CreditCalculator() {
                                   min="0"
                                   max="100"
                                   onWheel={(e) => e.currentTarget.blur()}
-                                  className="w-full px-2 py-1.5 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 text-black placeholder:text-slate-400"
+                                  className="w-full px-2 py-1.5 text-sm rounded-lg border border-slate-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 bg-white dark:bg-slate-700"
                                 />
                               </div>
                             </div>
                             <button
                               onClick={() => deleteModule(semester.id, module.id)}
-                              className="w-full text-red-500 hover:text-red-700 hover:bg-red-50 py-2 rounded-lg transition-colors text-sm font-medium flex items-center justify-center gap-2"
+                              className="w-full text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/30 py-2 rounded-lg transition-colors text-sm font-medium flex items-center justify-center gap-2"
                             >
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -811,7 +876,7 @@ export default function CreditCalculator() {
 
                 <button
                   onClick={() => addModule(semester.id)}
-                  className="mt-3 w-full sm:w-auto px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg md:rounded-xl text-sm font-medium transition-all duration-200 hover:shadow-md flex items-center justify-center gap-2"
+                  className="mt-3 w-full sm:w-auto px-4 py-2 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-400 rounded-lg md:rounded-xl text-sm font-medium transition-all duration-200 hover:shadow-md flex items-center justify-center gap-2"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -834,7 +899,7 @@ export default function CreditCalculator() {
               </button>
               <button
                 onClick={() => setShowClearModal(true)}
-                className="px-4 md:px-6 py-2.5 md:py-3 bg-white hover:bg-red-50 text-red-600 border-2 border-red-200 rounded-xl text-sm font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
+                className="px-4 md:px-6 py-2.5 md:py-3 bg-white dark:bg-slate-800 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 border-2 border-red-200 dark:border-red-800 rounded-xl text-sm font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
               >
                 Clear All
               </button>
@@ -843,18 +908,18 @@ export default function CreditCalculator() {
 
           {/* Desktop Sidebar */}
           <div className="lg:col-span-1 space-y-4 md:space-y-6">
-            <div className="hidden lg:block bg-white/80 backdrop-blur-sm rounded-xl md:rounded-2xl shadow-lg p-4 md:p-6 border border-slate-200/50 lg:sticky lg:top-6">
+            <div className="hidden lg:block bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl md:rounded-2xl shadow-lg p-4 md:p-6 border border-slate-200/50 dark:border-slate-700/50 lg:sticky lg:top-6">
               {(userName || userBatch !== '251P') && (
-                <div className="mb-4 md:mb-6 pb-4 md:pb-6 border-b border-slate-200">
+                <div className="mb-4 md:mb-6 pb-4 md:pb-6 border-b border-slate-200 dark:border-slate-700">
                   {userName && (
                     <div className="text-center mb-2">
-                      <div className="text-base md:text-lg font-bold text-slate-800" style={{ fontFamily: 'Georgia, serif' }}>
+                      <div className="text-base md:text-lg font-bold text-slate-800 dark:text-slate-100" style={{ fontFamily: 'Georgia, serif' }}>
                         {userName}
                       </div>
                     </div>
                   )}
                   <div className="text-center">
-                    <span className="inline-block px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs md:text-sm font-semibold">
+                    <span className="inline-block px-3 py-1 bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 rounded-full text-xs md:text-sm font-semibold">
                       Batch {userBatch}
                     </span>
                   </div>
@@ -864,7 +929,7 @@ export default function CreditCalculator() {
               <div className="text-center mb-4 md:mb-6">
                 <div className="inline-block relative">
                   <svg className="w-40 h-40 md:w-48 md:h-48 transform -rotate-90" viewBox="0 0 160 160">
-                    <circle cx="80" cy="80" r="70" fill="none" stroke="#e5e7eb" strokeWidth="12" />
+                    <circle cx="80" cy="80" r="70" fill="none" stroke={isDark ? '#334155' : '#e5e7eb'} strokeWidth="12" />
                     {gradedCredits > 0 && (
                       <circle
                         cx="80" cy="80" r="70" fill="none"
@@ -886,15 +951,15 @@ export default function CreditCalculator() {
                         <div className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-1" style={{ fontFamily: 'Georgia, serif' }}>
                           {weightedAverage.toFixed(2)}%
                         </div>
-                        <div className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">
+                        <div className="text-xs font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">
                           Weighted Average
                         </div>
                         <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full ${
-                          classification.color === 'text-green-600' ? 'bg-green-50 border border-green-200' :
-                          classification.color === 'text-blue-600' ? 'bg-blue-50 border border-blue-200' :
-                          classification.color === 'text-yellow-600' ? 'bg-yellow-50 border border-yellow-200' :
-                          classification.color === 'text-gray-600' ? 'bg-gray-50 border border-gray-200' :
-                          'bg-red-50 border border-red-200'
+                          classification.color === 'text-green-600' ? 'bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700' :
+                          classification.color === 'text-blue-600' ? 'bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700' :
+                          classification.color === 'text-yellow-600' ? 'bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-700' :
+                          classification.color === 'text-gray-600' ? 'bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-600' :
+                          'bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700'
                         }`}>
                           <div className={`w-2 h-2 rounded-full animate-pulse ${
                             classification.color === 'text-green-600' ? 'bg-green-500' :
@@ -902,22 +967,28 @@ export default function CreditCalculator() {
                             classification.color === 'text-yellow-600' ? 'bg-yellow-500' :
                             classification.color === 'text-gray-600' ? 'bg-gray-500' : 'bg-red-500'
                           }`}></div>
-                          <span className={`text-xs md:text-sm font-bold ${classification.color}`}>
+                          <span className={`text-xs md:text-sm font-bold ${
+                            classification.color === 'text-green-600' ? 'text-green-700 dark:text-green-400' :
+                            classification.color === 'text-blue-600' ? 'text-blue-700 dark:text-blue-400' :
+                            classification.color === 'text-yellow-600' ? 'text-yellow-700 dark:text-yellow-400' :
+                            classification.color === 'text-gray-600' ? 'text-gray-700 dark:text-gray-400' :
+                            'text-red-700 dark:text-red-400'
+                          }`}>
                             {classification.name}
                           </span>
                         </div>
                       </>
                     ) : (
                       <>
-                        <div className="text-2xl md:text-3xl font-bold text-slate-300 mb-1" style={{ fontFamily: 'Georgia, serif' }}>—</div>
-                        <div className="text-xs font-medium text-slate-400 uppercase tracking-wider text-center px-4">
+                        <div className="text-2xl md:text-3xl font-bold text-slate-300 dark:text-slate-600 mb-1" style={{ fontFamily: 'Georgia, serif' }}>—</div>
+                        <div className="text-xs font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider text-center px-4">
                           Enter marks to see your average
                         </div>
                       </>
                     )}
                   </div>
                 </div>
-                <div className="text-slate-500 text-xs mt-4">
+                <div className="text-slate-500 dark:text-slate-400 text-xs mt-4">
                   {gradedCredits > 0
                     ? `${gradedCredits} of ${totalCredits} credits graded`
                     : `${totalCredits} total credits`
@@ -927,7 +998,7 @@ export default function CreditCalculator() {
 
               {semesters.some(sem => sem.modules.some(m => hasValidMark(m))) && (
                 <div className="space-y-2 md:space-y-3 mb-4 md:mb-6">
-                  <h3 className="text-xs md:text-sm font-bold text-slate-700 mb-2 md:mb-3">Semester Averages</h3>
+                  <h3 className="text-xs md:text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 md:mb-3">Semester Averages</h3>
                   {semesters.map(semester => {
                     const gradedModules = semester.modules.filter(m => hasValidMark(m) && (parseInt(m.credits) || 0) > 0);
                     const semesterCredits = gradedModules.reduce((sum, m) => sum + (parseInt(m.credits) || 0), 0);
@@ -935,12 +1006,12 @@ export default function CreditCalculator() {
                     const semesterAverage = semesterCredits > 0 ? semesterWeightedSum / semesterCredits : 0;
                     if (gradedModules.length > 0) {
                       return (
-                        <div key={semester.id} className="bg-gradient-to-r from-slate-50 to-blue-50 rounded-lg md:rounded-xl p-2.5 md:p-3 border border-slate-200">
+                        <div key={semester.id} className="bg-gradient-to-r from-slate-50 to-blue-50 dark:from-slate-700/50 dark:to-blue-900/20 rounded-lg md:rounded-xl p-2.5 md:p-3 border border-slate-200 dark:border-slate-600">
                           <div className="flex justify-between items-center mb-1">
-                            <h4 className="text-xs md:text-sm font-semibold text-slate-700">{semester.name}</h4>
-                            <span className="text-base md:text-lg font-bold text-blue-600">{semesterAverage.toFixed(1)}%</span>
+                            <h4 className="text-xs md:text-sm font-semibold text-slate-700 dark:text-slate-300">{semester.name}</h4>
+                            <span className="text-base md:text-lg font-bold text-blue-600 dark:text-blue-400">{semesterAverage.toFixed(1)}%</span>
                           </div>
-                          <div className="text-xs text-slate-500">{semesterCredits} credits graded</div>
+                          <div className="text-xs text-slate-500 dark:text-slate-400">{semesterCredits} credits graded</div>
                         </div>
                       );
                     }
@@ -949,8 +1020,8 @@ export default function CreditCalculator() {
                 </div>
               )}
 
-              <div className="bg-gradient-to-br from-slate-50 to-indigo-50 rounded-lg md:rounded-xl p-3 md:p-4 border border-slate-200">
-                <h3 className="text-xs font-bold text-slate-700 mb-2 md:mb-3">UK Honours Classifications</h3>
+              <div className="bg-gradient-to-br from-slate-50 to-indigo-50 dark:from-slate-700/50 dark:to-indigo-900/20 rounded-lg md:rounded-xl p-3 md:p-4 border border-slate-200 dark:border-slate-600">
+                <h3 className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 md:mb-3">UK Honours Classifications</h3>
                 <div className="space-y-1.5 md:space-y-2">
                   {[
                     { color: 'bg-green-500', label: 'First Class', range: '70%+' },
@@ -961,8 +1032,8 @@ export default function CreditCalculator() {
                   ].map(({ color, label, range }) => (
                     <div key={label} className="flex items-center gap-2 text-xs">
                       <div className={`w-2 h-2 rounded-full flex-shrink-0 ${color}`}></div>
-                      <span className="font-medium text-slate-700">{label}:</span>
-                      <span className="text-slate-600">{range}</span>
+                      <span className="font-medium text-slate-700 dark:text-slate-300">{label}:</span>
+                      <span className="text-slate-600 dark:text-slate-400">{range}</span>
                     </div>
                   ))}
                 </div>
@@ -975,7 +1046,7 @@ export default function CreditCalculator() {
       {/* ══ ONBOARDING MODAL ══ */}
       {showOnboarding && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-md w-full p-6">
             <div className="flex justify-center mb-4">
               <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg">
                 <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -985,25 +1056,25 @@ export default function CreditCalculator() {
               </div>
             </div>
 
-            <h2 className="text-xl font-bold text-slate-800 text-center mb-2" style={{ fontFamily: 'Georgia, serif' }}>
+            <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100 text-center mb-2" style={{ fontFamily: 'Georgia, serif' }}>
               Welcome to NIBM Credit Calculator
             </h2>
-            <p className="text-slate-500 text-sm text-center mb-4">
-              Are you a <span className="font-semibold text-blue-600">BSc Computing</span> student at NIBM?
+            <p className="text-slate-500 dark:text-slate-400 text-sm text-center mb-4">
+              Are you a <span className="font-semibold text-blue-600 dark:text-blue-400">BSc Computing</span> student at NIBM?
             </p>
 
-            <div className="bg-blue-50 rounded-xl p-3 border border-blue-100 mb-3">
-              <p className="text-xs text-blue-700 text-center">
+            <div className="bg-blue-50 dark:bg-blue-900/30 rounded-xl p-3 border border-blue-100 dark:border-blue-800 mb-3">
+              <p className="text-xs text-blue-700 dark:text-blue-300 text-center">
                 ✓ If yes, we'll pre-load all your modules and credits — you just need to enter your marks!
               </p>
             </div>
 
-            <div className="bg-amber-50 rounded-xl p-3 border border-amber-200 mb-5">
+            <div className="bg-amber-50 dark:bg-amber-900/20 rounded-xl p-3 border border-amber-200 dark:border-amber-800 mb-5">
               <div className="flex items-start gap-2">
                 <svg className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                 </svg>
-                <p className="text-xs text-amber-700 leading-relaxed">
+                <p className="text-xs text-amber-700 dark:text-amber-300 leading-relaxed">
                   <span className="font-bold">Ethical Hacking</span> or <span className="font-bold">Business IT</span> student? Please select <span className="font-bold">"No"</span> — your programme has a different module structure, so you'll enter your modules manually.
                 </p>
               </div>
@@ -1021,7 +1092,7 @@ export default function CreditCalculator() {
               </button>
               <button
                 onClick={handleBscNo}
-                className="w-full px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold transition-colors duration-200"
+                className="w-full px-6 py-3 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 rounded-xl font-semibold transition-colors duration-200"
               >
                 No, load the default calculator
               </button>
@@ -1033,28 +1104,28 @@ export default function CreditCalculator() {
       {/* ══ RESTART CONFIRMATION MODAL ══ */}
       {showRestartModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl md:rounded-2xl shadow-2xl max-w-md w-full p-5 md:p-6">
+          <div className="bg-white dark:bg-slate-800 rounded-xl md:rounded-2xl shadow-2xl max-w-md w-full p-5 md:p-6">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-                <svg className="w-5 h-5 md:w-6 md:h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center flex-shrink-0">
+                <svg className="w-5 h-5 md:w-6 md:h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                     d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
               </div>
               <div>
-                <h3 className="text-lg md:text-xl font-bold text-slate-800">Restart Calculator?</h3>
-                <p className="text-xs text-slate-500 mt-0.5">This will wipe all your data</p>
+                <h3 className="text-lg md:text-xl font-bold text-slate-800 dark:text-slate-100">Restart Calculator?</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">This will wipe all your data</p>
               </div>
             </div>
 
-            <p className="text-sm md:text-base text-slate-600 mb-5 md:mb-6">
+            <p className="text-sm md:text-base text-slate-600 dark:text-slate-400 mb-5 md:mb-6">
               All your modules, marks, and student information will be permanently deleted. You'll be taken back to the welcome screen to choose your programme again.
             </p>
 
             <div className="flex flex-col-reverse sm:flex-row gap-2 md:gap-3">
               <button
                 onClick={() => setShowRestartModal(false)}
-                className="flex-1 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg md:rounded-xl font-semibold transition-colors text-sm md:text-base"
+                className="flex-1 px-4 py-2.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 rounded-lg md:rounded-xl font-semibold transition-colors text-sm md:text-base"
               >
                 Cancel
               </button>
@@ -1076,24 +1147,24 @@ export default function CreditCalculator() {
       {/* ══ CLEAR ALL CONFIRMATION MODAL ══ */}
       {showClearModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl md:rounded-2xl shadow-2xl max-w-md w-full p-5 md:p-6">
+          <div className="bg-white dark:bg-slate-800 rounded-xl md:rounded-2xl shadow-2xl max-w-md w-full p-5 md:p-6">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
-                <svg className="w-5 h-5 md:w-6 md:h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-red-100 dark:bg-red-900/40 flex items-center justify-center flex-shrink-0">
+                <svg className="w-5 h-5 md:w-6 md:h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                 </svg>
               </div>
               <div>
-                <h3 className="text-lg md:text-xl font-bold text-slate-800">Clear All Data?</h3>
+                <h3 className="text-lg md:text-xl font-bold text-slate-800 dark:text-slate-100">Clear All Data?</h3>
               </div>
             </div>
-            <p className="text-sm md:text-base text-slate-600 mb-5 md:mb-6">
+            <p className="text-sm md:text-base text-slate-600 dark:text-slate-400 mb-5 md:mb-6">
               This will permanently delete all your modules and marks but keep your student information. This action cannot be undone.
             </p>
             <div className="flex flex-col-reverse sm:flex-row gap-2 md:gap-3">
               <button
                 onClick={() => setShowClearModal(false)}
-                className="flex-1 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg md:rounded-xl font-semibold transition-colors text-sm md:text-base"
+                className="flex-1 px-4 py-2.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 rounded-lg md:rounded-xl font-semibold transition-colors text-sm md:text-base"
               >
                 Cancel
               </button>
