@@ -14,7 +14,6 @@ const STORAGE_KEY = 'ukCreditCalculator';
 const SYNC_QUEUE_KEY = 'ukCreditCalculatorSyncQueue';
 const ONBOARDING_KEY = 'ukCreditCalculatorOnboarded';
 const BACKUP_KEY = 'ukCreditCalculatorBackups';
-const THEME_KEY = 'ukCreditCalculatorTheme';
 
 const BSC_COMPUTING_MODULES = [
   {
@@ -69,24 +68,19 @@ export default function CreditCalculator() {
   const [isOnline, setIsOnline] = useState(true);
   const [syncStatus, setSyncStatus] = useState('synced');
   const [isCheckingUser, setIsCheckingUser] = useState(true);
-  // ── Dark mode state ──
   const [isDark, setIsDark] = useState(false);
   
   const syncQueueRef = useRef([]);
   const isSyncingRef = useRef(false);
   const onboardingPendingRef = useRef(true);
-  const backupDebounceRef = useRef(null);
 
-  // ── Apply / remove dark class on <html> whenever isDark changes ──
+  // ── Apply dark class to <html> whenever isDark changes ──
   useEffect(() => {
     if (isDark) {
       document.documentElement.classList.add('dark');
     } else {
       document.documentElement.classList.remove('dark');
     }
-    try {
-      localStorage.setItem(THEME_KEY, isDark ? 'dark' : 'light');
-    } catch (e) {}
   }, [isDark]);
 
   const toggleDark = () => setIsDark(v => !v);
@@ -133,16 +127,13 @@ export default function CreditCalculator() {
   };
 
   const processSyncQueue = async () => {
-    if (!supabase || isSyncingRef.current || syncQueueRef.current.length === 0) {
-      return;
-    }
+    if (!supabase || isSyncingRef.current || syncQueueRef.current.length === 0) return;
 
     isSyncingRef.current = true;
     setSyncStatus('syncing');
 
     try {
       const queue = [...syncQueueRef.current];
-      
       for (const operation of queue) {
         try {
           switch (operation.type) {
@@ -170,7 +161,6 @@ export default function CreditCalculator() {
           break;
         }
       }
-
       saveSyncQueue(syncQueueRef.current);
       setSyncStatus(syncQueueRef.current.length === 0 ? 'synced' : 'error');
     } catch (error) {
@@ -233,7 +223,6 @@ export default function CreditCalculator() {
       created_at: new Date().toISOString(),
     };
 
-    // Always persist to localStorage (keeps last 20 backups)
     try {
       const existing = JSON.parse(localStorage.getItem(BACKUP_KEY) || '[]');
       existing.push(record);
@@ -243,7 +232,6 @@ export default function CreditCalculator() {
       console.error('Backup localStorage error:', e);
     }
 
-    // Sync to Supabase if available
     if (supabase && userId) {
       try {
         await supabase.from('calculator_backups').insert(record);
@@ -253,19 +241,10 @@ export default function CreditCalculator() {
     }
   };
 
-  // ── Initial load: data first, onboarding only if nothing saved ──
+  // ── Initial load ──
   useEffect(() => {
     const id = getUserId();
     setUserId(id);
-
-    // ── Restore saved theme ──
-    try {
-      const savedTheme = localStorage.getItem(THEME_KEY);
-      if (savedTheme === 'dark') {
-        setIsDark(true);
-        document.documentElement.classList.add('dark');
-      }
-    } catch (e) {}
 
     try {
       const saved = window.localStorage.getItem(STORAGE_KEY);
@@ -277,6 +256,17 @@ export default function CreditCalculator() {
         setUserName(data.userName || '');
         setUserBatch(data.userBatch || '251P');
         setSemesters(data.semesters || []);
+
+        // ── Restore dark mode from saved data ──
+        if (data.isDark !== undefined) {
+          setIsDark(data.isDark);
+          if (data.isDark) {
+            document.documentElement.classList.add('dark');
+          } else {
+            document.documentElement.classList.remove('dark');
+          }
+        }
+
         if (
           data.semesters &&
           data.semesters.length > 0 &&
@@ -307,13 +297,13 @@ export default function CreditCalculator() {
     if (supabase) processSyncQueue();
   }, []);
 
-  // Auto-save
+  // ── Auto-save: includes isDark so it persists to both localStorage and Supabase ──
   useEffect(() => {
     if (isCheckingUser || showOnboarding || semesters.length === 0 || onboardingPendingRef.current) return;
-    const data = { userName, userBatch, semesters };
+    const data = { userName, userBatch, semesters, isDark };
     saveToLocalStorage(data);
     if (userId) saveToSupabase(data);
-  }, [userName, userBatch, semesters, userId, showOnboarding, isCheckingUser]);
+  }, [userName, userBatch, semesters, isDark, userId, showOnboarding, isCheckingUser]);
 
   useEffect(() => {
     const handleOnline = () => {
@@ -381,19 +371,18 @@ export default function CreditCalculator() {
   };
 
   const updateModule = (semesterId, moduleId, field, value) => {
-    // Every time a mark shrinks (any backspace/delete), save the value BEFORE the keystroke
     if (field === 'mark') {
       const semester = semesters.find(s => s.id === semesterId);
       const mod = semester?.modules.find(m => m.id === moduleId);
       const oldVal = String(mod?.mark ?? '');
       const newVal = String(value ?? '');
 
-      // Value is getting shorter — snapshot right now, before setSemesters runs
       if (newVal.length < oldVal.length && oldVal.length > 0) {
         const preEditSnapshot = {
           userName,
           userBatch,
           semesters: JSON.parse(JSON.stringify(semesters)),
+          isDark,
         };
         saveBackup('mark_deleted', preEditSnapshot);
       }
@@ -436,9 +425,8 @@ export default function CreditCalculator() {
     } catch (e) {}
   };
 
-  // Restart: save backup first, then wipe everything and re-show onboarding
   const handleRestart = async () => {
-    await saveBackup('restart', { userName, userBatch, semesters });
+    await saveBackup('restart', { userName, userBatch, semesters, isDark });
 
     try {
       localStorage.removeItem(STORAGE_KEY);
@@ -523,13 +511,11 @@ export default function CreditCalculator() {
           className="inline-flex items-center justify-center w-10 h-10 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-200 rounded-xl shadow-xl hover:shadow-2xl transition-all duration-200 hover:bg-slate-100 dark:hover:bg-slate-600"
         >
           {isDark ? (
-            /* Sun icon */
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                 d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707M17.657 17.657l-.707-.707M6.343 6.343l-.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z" />
             </svg>
           ) : (
-            /* Moon icon */
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                 d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
@@ -1055,20 +1041,17 @@ export default function CreditCalculator() {
                 </svg>
               </div>
             </div>
-
             <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100 text-center mb-2" style={{ fontFamily: 'Georgia, serif' }}>
               Welcome to NIBM Credit Calculator
             </h2>
             <p className="text-slate-500 dark:text-slate-400 text-sm text-center mb-4">
               Are you a <span className="font-semibold text-blue-600 dark:text-blue-400">BSc Computing</span> student at NIBM?
             </p>
-
             <div className="bg-blue-50 dark:bg-blue-900/30 rounded-xl p-3 border border-blue-100 dark:border-blue-800 mb-3">
               <p className="text-xs text-blue-700 dark:text-blue-300 text-center">
                 ✓ If yes, we'll pre-load all your modules and credits — you just need to enter your marks!
               </p>
             </div>
-
             <div className="bg-amber-50 dark:bg-amber-900/20 rounded-xl p-3 border border-amber-200 dark:border-amber-800 mb-5">
               <div className="flex items-start gap-2">
                 <svg className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1079,7 +1062,6 @@ export default function CreditCalculator() {
                 </p>
               </div>
             </div>
-
             <div className="flex flex-col gap-3">
               <button
                 onClick={handleBscYes}
@@ -1117,11 +1099,9 @@ export default function CreditCalculator() {
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">This will wipe all your data</p>
               </div>
             </div>
-
             <p className="text-sm md:text-base text-slate-600 dark:text-slate-400 mb-5 md:mb-6">
               All your modules, marks, and student information will be permanently deleted. You'll be taken back to the welcome screen to choose your programme again.
             </p>
-
             <div className="flex flex-col-reverse sm:flex-row gap-2 md:gap-3">
               <button
                 onClick={() => setShowRestartModal(false)}
